@@ -4,6 +4,7 @@ using System.Numerics;
 using ECCBase16;
 using RSECC;
 using RSService;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace FormTest
 {
@@ -157,15 +158,44 @@ namespace FormTest
         {
             _sw.Reset();
             _sw.Start();
-            EiSiPoint point = AffinePoint.ToEiSiPoint(new AffinePoint())
-            EiSiPoint point2 = new EiSiPoint(13,7,14, _curve);
-            EiSiPoint point3 = EiSiPoint.Subtract(point, point2);
-            AffinePoint p = EiSiPoint.ToAffine(point3);
+            //EiSiPoint point = AffinePoint.ToEiSiPoint(new AffinePoint())
+            //EiSiPoint point2 = new EiSiPoint(13,7,14, _curve);
+            //EiSiPoint point3 = EiSiPoint.Subtract(point, point2);
+            //AffinePoint p = EiSiPoint.ToAffine(point3);
 
-            EiSiPoint test = EiSiPoint.Multiply(17, AffinePoint.ToEiSiPoint(_curve.G));
+            //EiSiPoint test = EiSiPoint.Multiply(17, AffinePoint.ToEiSiPoint(_curve.G));
+            ////AffinePoint p = EiSiPoint.ToAffine(test);
+            ///
+            //RSECC.Point p1 = new RSECC.Point(16,4);
+            //RSECC.Point p2 = new RSECC.Point(7, 6);
+
+            //RSECC.Point p = EcdsaMath.Sub(p1, p2, _curve.A, _curve.P);
+
+
+            //EiSiPoint p1 = new EiSiPoint(13,7,14,_curve);
+            //EiSiPoint p2 = new EiSiPoint(11,12,8,_curve);
+            //var test = EiSiPoint.Subtract(p1, p2);
             //AffinePoint p = EiSiPoint.ToAffine(test);
-            _sw.Stop();
+            EiSiPoint p1 = new EiSiPoint(6,5,8, _curve);
+            EiSiPoint p2 = new EiSiPoint(6,5,9, _curve);
+            EiSiPoint p3 = new EiSiPoint(16,4,1, _curve);
+            var test = p1 - p2;
+            AffinePoint p = EiSiPoint.ToAffine(test);
             setText(p.X, p.Y);
+            _sw.Stop();
+            //setText(p.X, p.Y);
+            setTime();
+        }
+
+        private void button11_Click(object sender, EventArgs e)
+        {
+            _sw.Reset();
+            _sw.Start();
+            //EiSiPoint p2 = new EiSiPoint(11, 12, 10, _curve);
+            //EiSiPoint test = EiSiPoint.DirectDoulbing(p2);
+            //AffinePoint p = EiSiPoint.ToAffine(test);
+            //_sw.Stop();
+            //setText(p.X, p.Y);
             setTime();
         }
     }

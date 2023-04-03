@@ -26,7 +26,7 @@ namespace RSService
         private static readonly string _sum_encrypt = "0.5.SumEncrypt.txt";
         private static readonly string _get_sum_encrypt = "0.6.Sum.txt";
 
-        private static bool _run_phase_1 = false;
+        private static bool _run_phase_1 = true;
         private static bool _run_phase_2 = true;
         private static bool _run_phase_3 = true;
         private static bool _run_phase_4 = true;
@@ -135,133 +135,154 @@ namespace RSService
                 #endregion
 
                 #region Pha 2 Tính các khóa công khai dùng chung Máy chủ thực hiện
-                EiSiPoint[] KPj = new EiSiPoint[nk];
+
                 if (_run_phase_2)
                 {
-
-                    string[] key_user_pub = ReadFileAsLine(_key_user_pub);
-                    Parallel.ForEach(key_user_pub, line =>
+                    try
                     {
-                        string[] values = line.Split(',');
-                        KPUij[int.Parse(values[0]), int.Parse(values[1])] = new EiSiPoint(BigInteger.Parse(values[2]), BigInteger.Parse(values[3]), 1, _curve);
-                    });
-
-                    sw.Reset();
-                    sw.Start();
-                    for (int j = 0; j < nk; j++)
-                    {
-                        KPj[j] = EiSiPoint.InfinityPoint;
-                        for (int i = 0; i < n; i++)
+                        string[] key_user_pub = ReadFileAsLine(_key_user_pub);
+                        Parallel.ForEach(key_user_pub, line =>
                         {
-                            //ECCBase16.AffinePoint p1 = EiSiPoint.ToAffine(KPj[j]);
-                            //ECCBase16.AffinePoint p2 = EiSiPoint.ToAffine(KPUij[i, j]);
-                            KPj[j] = EiSiPoint.Addition(KPj[j], KPUij[i, j]);
-                            //ECCBase16.AffinePoint px =EiSiPoint.ToAffine(KPj[j]);
-                            //concurrent_test.Add(string.Format("({0},{1}) + ({2},{3})=({4},{5})", p1.x, p1.y, p2.x, p2.y, px.x, px.y));
-                        }
-                        ECCBase16.AffinePoint p = EiSiPoint.ToAffine(KPj[j]);
-                        concurrent_1.Add(string.Format("{0},{1},{2}", j, p.X, p.Y));
-                    }
-                    //Parallel.For(0, nk, j =>
-                    //{
-                    //    KPj[j] =  EiSiPoint.InfinityPoint;
-                    //    for (int i = 0; i < n; i++)
-                    //    {
-                    //        KPj[j] = EiSiPoint.Addition(KPj[j], KPUij[i, j]);
-                    //    }
-                    //    AffinePoint p = EiSiPoint.ToAffine(KPj[j]);
-                    //    concurrent_1.Add(string.Format("{0},{1},{2}", j, p.X, p.Y));
-                    //});
-                    //sw.Stop();
+                            string[] values = line.Split(',');
+                            KPUij[int.Parse(values[0]), int.Parse(values[1])] = new EiSiPoint(BigInteger.Parse(values[2]), BigInteger.Parse(values[3]), 1, _curve);
+                        });
 
-                    WriteFile(_key_common, string.Join(Environment.NewLine, concurrent_1), false);
-                    //WriteFile("Test.txt", string.Join(Environment.NewLine, concurrent_test), false);
-                    Clear(concurrent_1);
+                        sw.Reset();
+                        sw.Start();
+                        for (int j = 0; j < nk; j++)
+                        {
+                            EiSiPoint KPj = EiSiPoint.InfinityPoint;
+                            for (int i = 0; i < n; i++)
+                            {
+                                ECCBase16.AffinePoint p1 = EiSiPoint.ToAffine(KPj);
+                                ECCBase16.AffinePoint p2 = EiSiPoint.ToAffine(KPUij[i, j]);
+                                KPj += KPUij[i, j];
+                                ECCBase16.AffinePoint px = EiSiPoint.ToAffine(KPj);
+                                concurrent_test.Add(string.Format("({0},{1}) + ({2},{3})=({4},{5})", p1.X, p1.Y, p2.X, p2.Y, px.X, px.Y));
+                            }
+                            ECCBase16.AffinePoint p = EiSiPoint.ToAffine(KPj);
+                            concurrent_1.Add(string.Format("{0},{1},{2}", j, p.X, p.Y));
+                        }
+                        //Parallel.For(0, nk, j =>
+                        //{
+                        //    KPj[j] =  EiSiPoint.InfinityPoint;
+                        //    for (int i = 0; i < n; i++)
+                        //    {
+                        //        KPj[j] = EiSiPoint.Addition(KPj[j], KPUij[i, j]);
+                        //    }
+                        //    AffinePoint p = EiSiPoint.ToAffine(KPj[j]);
+                        //    concurrent_1.Add(string.Format("{0},{1},{2}", j, p.X, p.Y));
+                        //});
+                        //sw.Stop();
+
+                        WriteFile(_key_common, string.Join(Environment.NewLine, concurrent_1), false);
+                        Clear(concurrent_1);
+                    }
+                    catch (Exception ex)
+                    {
+
+                        throw;
+                    }
+
                 }
 
 
                 #endregion
-
                 #region Pha 3 Gửi dữ liệu Những người dùng Ui thực hiện
                 if (_run_phase_3)
                 {
-
-                    string[] shared_key = ReadFileAsLine(_key_common);
-
-                    Parallel.ForEach(shared_key, line =>
+                    try
                     {
-                        if (!string.IsNullOrWhiteSpace(line))
+                        EiSiPoint[] KPj = new EiSiPoint[nk];
+                        string[] shared_key = ReadFileAsLine(_key_common);
+
+                        Parallel.ForEach(shared_key, line =>
                         {
-                            string[] values = line.Split(',');
-                            KPj[int.Parse(values[0])] = new EiSiPoint(BigInteger.Parse(values[1]), BigInteger.Parse(values[2]), 1, _curve);
-                        }
-                    });
-
-                    string[] key_user_prv = ReadFileAsLine(_key_user_prv);
-                    Parallel.ForEach(key_user_prv, line =>
-                    {
-                        if (!string.IsNullOrWhiteSpace(line))
-                        {
-                            string[] values = line.Split(',');
-                            ksuij[int.Parse(values[0]), int.Parse(values[1])] = BigInteger.Parse(values[2]);
-                        }
-                    });
-
-                    sw.Reset();
-                    sw.Start();
-
-                    Dictionary<int, EiSiPoint> dic_repeated = new Dictionary<int, EiSiPoint>();
-
-                    for (int i = 0; i < n; i++)
-                    {
-                        int j = 0;
-                        for (int t = 0; t < nk - 1; t++)
-                        {
-                            for (int k = t + 1; k < nk; k++)
+                            if (!string.IsNullOrWhiteSpace(line))
                             {
-                                if (!dic_repeated.TryGetValue(Rns[i, j], out EiSiPoint p1))
-                                {
-                                    p1 = EiSiPoint.Base16Multiplicands(Rns[i, j], G);
-                                    dic_repeated.Add(Rns[i, j], p1);
-                                    concurrent_test.Add(string.Format("{0}*({1})=({2})", Rns[i, j], AffinePoint.ToString(_curve.G), AffinePoint.ToString(EiSiPoint.ToAffine(p1))));
-                                }
-                                ECCBase16.EiSiPoint p2 = EiSiPoint.Base16Multiplicands(ksuij[i, k], KPj[t]);
-                                ECCBase16.EiSiPoint p3 = EiSiPoint.Base16Multiplicands(ksuij[i, t], KPj[k]);
-                                ECCBase16.EiSiPoint p4 = EiSiPoint.Subtract(EiSiPoint.Addition(p1, p2), p3);
-                                ECCBase16.AffinePoint p5 = EiSiPoint.ToAffine(p4);
-
-                                concurrent_test.Add(string.Format("({0})+({1})-({2})=({3})", AffinePoint.ToString(EiSiPoint.ToAffine(p1)), AffinePoint.ToString(EiSiPoint.ToAffine(p2)), AffinePoint.ToString(EiSiPoint.ToAffine(p3)), AffinePoint.ToString(p5)));
-
-                                concurrent_1.Add(string.Format("{0},{1},{2},{3}", i, j, p5.X, p5.Y));
-                                if (j == ns - 1) break;
-                                else j++;
+                                string[] values = line.Split(',');
+                                KPj[int.Parse(values[0])] = new EiSiPoint(BigInteger.Parse(values[1]), BigInteger.Parse(values[2]), 1, _curve);
                             }
-                            if (j == ns - 1) break;
-                        }
-                    }
-                    //Parallel.For(0, n, i =>
-                    //{
-                    //    int j = 0;
-                    //    for (int t = 0; t < nk - 1; t++)
-                    //    {
-                    //        for (int k = t + 1; k < nk; k++)
-                    //        {
-                    //            ECCBase16.EiSiPoint p1 = EiSiPoint.Base16Multiplicands(Rns[i, j], G);
-                    //            ECCBase16.EiSiPoint p2 = EiSiPoint.Base16Multiplicands(ksuij[i, k], KPj[t]);
-                    //            ECCBase16.EiSiPoint p3 = EiSiPoint.Base16Multiplicands(ksuij[i, t], KPj[k]);
-                    //            ECCBase16.EiSiPoint p4 = EiSiPoint.Subtract(EiSiPoint.Addition(p1, p1), p3);
-                    //            ECCBase16.AffinePoint p5 = EiSiPoint.ToAffine(p4);
-                    //            concurrent_1.Add(string.Format("{0},{1},{2},{3}", i, j, p5.X, p5.Y));
-                    //            if (j == ns - 1) break;
-                    //            else j++;
-                    //        }
-                    //        if (j == ns - 1) break;
-                    //    }
-                    //});
-                    sw.Stop();
+                        });
 
-                    WriteFile(_encrypt, string.Join(Environment.NewLine, concurrent_1), false);
-                    Clear(concurrent_1);
+                        string[] key_user_prv = ReadFileAsLine(_key_user_prv);
+                        Parallel.ForEach(key_user_prv, line =>
+                        {
+                            if (!string.IsNullOrWhiteSpace(line))
+                            {
+                                string[] values = line.Split(',');
+                                ksuij[int.Parse(values[0]), int.Parse(values[1])] = BigInteger.Parse(values[2]);
+                            }
+                        });
+
+                        sw.Reset();
+                        sw.Start();
+
+                        Dictionary<int, EiSiPoint> dic_repeated = new Dictionary<int, EiSiPoint>();
+
+                        for (int i = 0; i < n; i++)
+                        {
+                            int j = 0;
+                            for (int t = 0; t < nk - 1; t++)
+                            {
+                                for (int k = t + 1; k < nk; k++)
+                                {
+                                    if (!dic_repeated.TryGetValue(Rns[i, j], out EiSiPoint p1))
+                                    {
+                                        p1 = Rns[i, j] * G;
+                                        dic_repeated.Add(Rns[i, j], p1);
+                                        concurrent_test.Add(string.Format("{0}*({1})=({2})", Rns[i, j], AffinePoint.ToString(_curve.G), AffinePoint.ToString(EiSiPoint.ToAffine(p1))));
+                                    }
+                                    ECCBase16.EiSiPoint p2 = ksuij[i, k] * KPj[t];
+                                    ECCBase16.EiSiPoint p3 = ksuij[i, t] * KPj[k];
+                                    ECCBase16.EiSiPoint p4 = p1 + p2 - p3;
+                                    if (p4.IsInfinity() || p4.U == 0)
+                                    {
+                                        concurrent_test.Add(string.Format("({0})+({1})-({2})=({3})", AffinePoint.ToString(EiSiPoint.ToAffine(p1)), AffinePoint.ToString(EiSiPoint.ToAffine(p2)), AffinePoint.ToString(EiSiPoint.ToAffine(p3)), AffinePoint.ToString(AffinePoint.InfinityPoint)));
+                                        //concurrent_test.Add(string.Format("({0})+({1})-({2})=({3})", p1.ToString(), p2.ToString(), p3.ToString(), AffinePoint.ToString(AffinePoint.InfinityPoint)));
+                                        concurrent_1.Add(string.Format("{0},{1},{2},{3}", i, j, p4.Nx, p4.Ny));
+                                    }
+                                    else
+                                    {
+                                        ECCBase16.AffinePoint p5 = EiSiPoint.ToAffine(p4);
+                                        concurrent_1.Add(string.Format("{0},{1},{2},{3}", i, j, p5.X, p5.Y));
+                                    }
+                                    if (j == ns - 1) break;
+                                    else j++;
+                                }
+                                if (j == ns - 1) break;
+                            }
+                        }
+                        //Parallel.For(0, n, i =>
+                        //{
+                        //    int j = 0;
+                        //    for (int t = 0; t < nk - 1; t++)
+                        //    {
+                        //        for (int k = t + 1; k < nk; k++)
+                        //        {
+                        //            ECCBase16.EiSiPoint p1 = EiSiPoint.Base16Multiplicands(Rns[i, j], G);
+                        //            ECCBase16.EiSiPoint p2 = EiSiPoint.Base16Multiplicands(ksuij[i, k], KPj[t]);
+                        //            ECCBase16.EiSiPoint p3 = EiSiPoint.Base16Multiplicands(ksuij[i, t], KPj[k]);
+                        //            ECCBase16.EiSiPoint p4 = EiSiPoint.Subtract(EiSiPoint.Addition(p1, p1), p3);
+                        //            ECCBase16.AffinePoint p5 = EiSiPoint.ToAffine(p4);
+                        //            concurrent_1.Add(string.Format("{0},{1},{2},{3}", i, j, p5.X, p5.Y));
+                        //            if (j == ns - 1) break;
+                        //            else j++;
+                        //        }
+                        //        if (j == ns - 1) break;
+                        //    }
+                        //});
+                        sw.Stop();
+
+                        WriteFile(_encrypt, string.Join(Environment.NewLine, concurrent_1), false);
+                        Clear(concurrent_1);
+                    }
+                    catch (Exception ex)
+                    {
+
+                        throw;
+                    }
+
                 }
 
 
@@ -269,54 +290,83 @@ namespace RSService
 
                 #region Pha 4 Trích xuất kết quả Máy chủ thực hiện
                 ECCBase16.AffinePoint[,] AUij = new ECCBase16.AffinePoint[n, ns];
-                ECCBase16.EiSiPoint[] Aj = new ECCBase16.EiSiPoint[ns];
+
                 if (_run_phase_4)
                 {
-                    sw.Reset();
-
-                    sw.Start();
-                    string[] data_phase3 = ReadFileAsLine(_encrypt);
-                    Parallel.ForEach(data_phase3, line =>
+                    try
                     {
-                        if (!string.IsNullOrWhiteSpace(line))
-                        {
-                            string[] values = line.Split(',');
-                            AUij[int.Parse(values[0]), int.Parse(values[1])] = new ECCBase16.AffinePoint(BigInteger.Parse(values[2]), BigInteger.Parse(values[3]), _curve);
-                        }
-                    });
+                        sw.Reset();
 
-                    Parallel.For(0, ns, (j) =>
+                        sw.Start();
+                        string[] data_phase3 = ReadFileAsLine(_encrypt);
+                        Parallel.ForEach(data_phase3, line =>
+                        {
+                            if (!string.IsNullOrWhiteSpace(line))
+                            {
+                                string[] values = line.Split(',');
+                                AUij[int.Parse(values[0]), int.Parse(values[1])] = new ECCBase16.AffinePoint(BigInteger.Parse(values[2]), BigInteger.Parse(values[3]), _curve);
+                            }
+                        });
+                        for (int j = 0; j < ns; j++)
+                        {
+                            EiSiPoint Aj = EiSiPoint.InfinityPoint;
+                            for (int i = 0; i < n; i++)
+                            {
+                                AffinePoint tmp = EiSiPoint.ToAffine(Aj);
+                                Aj += AffinePoint.ToEiSiPoint(AUij[i, j]);
+                                concurrent_test.Add(string.Format("({0})+({1})=({2})", AffinePoint.ToString(tmp), AffinePoint.ToString(AUij[i, j]), AffinePoint.ToString(EiSiPoint.ToAffine(Aj))));
+                            }
+                            concurrent_1.Add(string.Format("{0},{1},{2},{3}", j, Aj.Nx, Aj.Ny, Aj.U));
+                        }
+                        //Parallel.For(0, ns, (j) =>
+                        //{
+                        //    Aj[j] = EiSiPoint.InfinityPoint;
+                        //    for (int i = 0; i < n; i++)
+                        //    {
+                        //        //EiSiPoint tmp = EiSiPoint.Addition(Aj[j], AffinePoint.ToEiSiPoint(AUij[i, j]));
+                        //        //Aj[j] = tmp;
+                        //        Aj[j] = Aj[j] + AffinePoint.ToEiSiPoint(AUij[i, j]);
+                        //    }
+                        //    concurrent_1.Add(string.Format("{0},{1},{2},{3}", j, Aj[j].Nx, Aj[j].Ny, Aj[j].U));
+                        //});
+                        sw.Stop();
+
+                        WriteFile(_sum_encrypt, string.Join(Environment.NewLine, concurrent_1), false);
+                        Clear(concurrent_1);
+                    }
+                    catch (Exception ex)
                     {
-                        Aj[j] = EiSiPoint.InfinityPoint;
-                        for (int i = 0; i < n; i++)
-                        {
-                            EiSiPoint tmp = EiSiPoint.Addition(Aj[j], AffinePoint.ToEiSiPoint(AUij[i, j]));
-                            Aj[j] = tmp;
-                        }
-                        concurrent_1.Add(string.Format("{0},{1},{2},{3}", j, Aj[j].Nx, Aj[j].Ny, Aj[j].U));
-                    });
-                    sw.Stop();
 
-                    WriteFile(_sum_encrypt, string.Join(Environment.NewLine, concurrent_1), false);
-                    Clear(concurrent_1);
+                        throw;
+                    }
+
                 }
                 if (_run_export_sum)
                 {
-                    sw.Reset();
-                    sw.Start();
-                    string[] data_phase4 = ReadFileAsLine(_sum_encrypt);
-                    Parallel.ForEach(data_phase4, line =>
+                    try
                     {
-                        string[] values = line.Split(',');
-                        Aj[int.Parse(values[0])] = new EiSiPoint(BigInteger.Parse(values[1]), BigInteger.Parse(values[2]), BigInteger.Parse(values[3]), _curve);
-                    });
+                        ECCBase16.EiSiPoint[] Aj = new ECCBase16.EiSiPoint[ns];
+                        sw.Reset();
+                        sw.Start();
+                        string[] data_phase4 = ReadFileAsLine(_sum_encrypt);
+                        Parallel.ForEach(data_phase4, line =>
+                        {
+                            string[] values = line.Split(',');
+                            Aj[int.Parse(values[0])] = new EiSiPoint(BigInteger.Parse(values[1]), BigInteger.Parse(values[2]), BigInteger.Parse(values[3]), _curve);
+                        });
 
-                    List<int> data_loga = BRF(Aj, _curve, ns, max * max * n);
+                        var data_loga = BRF(Aj, _curve, ns, max * max * n);
+                        Sim(data_loga, m);
+                        WriteFile(_get_sum_encrypt, string.Join(";", data_loga), false);
+                        sw.Stop();
+                    }
+                    catch (Exception ex)
+                    {
 
-                    WriteFile(_get_sum_encrypt, string.Join(";", data_loga), false);
-                    sw.Stop();
+                        throw;
+                    }
+                    
                 }
-
             }
             catch (Exception ex)
             {
@@ -328,20 +378,20 @@ namespace RSService
 
         }
 
-        public static List<int> BRF(ECCBase16.EiSiPoint[] Aj, Curve curve, int ns, int max)
+        public static int[] BRF(ECCBase16.EiSiPoint[] Aj, Curve curve, int ns, int max)
         {
-            List<int> result = new List<int>();
+            int[] result = new int[ns];
             ECCBase16.EiSiPoint K = ECCBase16.EiSiPoint.InfinityPoint;
             EiSiPoint G = ECCBase16.AffinePoint.ToEiSiPoint(curve.G);
             int count = 0;
             for (int i = 0; i < max; i++)
             {
-                K = EiSiPoint.Multiply(i, G);
+                K = i * G;
                 for (int j = 0; j < ns; j++)
                 {
                     if (K.Ny == Aj[j].Ny && K.Nx == Aj[j].Nx && K.U == Aj[j].U)
                     {
-                        result.Add(i);
+                        result[j]=i;
                         count += 1;
                         if (count == ns - 1)
                         {
@@ -365,18 +415,28 @@ namespace RSService
             double[,] sim = new double[m, m];
             Parallel.For(0, m, i =>
             {
-                R[i] = sum[i] / sum[i + m];
+                if (sum[i + m] == 0)
+                {
+                    R[i] = 0;
+                }
+                else
+                {
+                    R[i] = sum[i] / sum[i + m];
+                }
+                
             });
-
+            ConcurrentBag<string> bag = new ConcurrentBag<string>();
             int l = 0;
             for (int j = 0; j < m - 1; j++)
             {
                 for (int k = j + 1; k < m; k++)
                 {
                     sim[j, k] = sum[3 * m + l] / (Math.Sqrt(sum[2 * m + j]) * Math.Sqrt(sum[2 * m + k]));
+                    bag.Add(String.Format("Sim({0},{1})={2}", j, k, sim[j, k]));
                     l++;
                 }
             }
+            WriteFile("Sim.txt", String.Join(Environment.NewLine, bag), false);
         }
 
 

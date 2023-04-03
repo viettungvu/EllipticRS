@@ -302,29 +302,30 @@ namespace ECCBase16
         {
             return Nx.IsZero && Ny.IsZero;
         }
-
+        public override string ToString()
+        {
+            return string.Format("{0},{1},{2}", Nx, Ny, U);
+        }
         public static EiSiPoint Doubling(EiSiPoint point)
         {
-            if (!_dic_calculated.TryGetValue(2, out EiSiPoint result))
+            EiSiPoint result;
+            if (point.IsInfinity())
             {
-                if (point.IsInfinity())
-                {
-                    result = InfinityPoint;
-                }
-                BigInteger a = point.Curve.A;
-                BigInteger p = point.Curve.P;
-                BigInteger Nx1 = point.Nx;
-                BigInteger Ny1 = point.Ny;
-                BigInteger W = Numerics.Modulo(3 * BigInteger.Pow(Nx1, 2) + a * BigInteger.Pow(point.U, 4), p);
-                BigInteger sqr_W = Numerics.Modulo(BigInteger.Pow(W, 2), p);
-                BigInteger q = Numerics.Modulo(2 * Ny1, p);
-                BigInteger sqr_q = Numerics.Modulo(BigInteger.Pow(q, 2), p);
-                BigInteger cube_q = Numerics.Modulo(BigInteger.Pow(q, 3), p);
-                BigInteger U = Numerics.Modulo(q * point.U, p);
-                BigInteger Nx = Numerics.Modulo(sqr_W - 2 * Nx1 * sqr_q, p);
-                BigInteger Ny = Numerics.Modulo(W * (Nx1 * sqr_q - Nx) - Ny1 * cube_q, p);
-                result = new EiSiPoint(Nx, Ny, U, point.Curve);
+                result = InfinityPoint;
             }
+            BigInteger a = point.Curve.A;
+            BigInteger p = point.Curve.P;
+            BigInteger Nx1 = point.Nx;
+            BigInteger Ny1 = point.Ny;
+            BigInteger W = Numerics.Modulo(3 * BigInteger.Pow(Nx1, 2) + a * BigInteger.Pow(point.U, 4), p);
+            BigInteger sqr_W = Numerics.Modulo(BigInteger.Pow(W, 2), p);
+            BigInteger q = Numerics.Modulo(2 * Ny1, p);
+            BigInteger sqr_q = Numerics.Modulo(BigInteger.Pow(q, 2), p);
+            BigInteger cube_q = Numerics.Modulo(BigInteger.Pow(q, 3), p);
+            BigInteger U = Numerics.Modulo(q * point.U, p);
+            BigInteger Nx = Numerics.Modulo(sqr_W - 2 * Nx1 * sqr_q, p);
+            BigInteger Ny = Numerics.Modulo(W * (Nx1 * sqr_q - Nx) - Ny1 * cube_q, p);
+            result = new EiSiPoint(Nx, Ny, U, point.Curve);
             return result;
         }
 
@@ -334,43 +335,64 @@ namespace ECCBase16
             {
                 return point2;
             }
-            if (point2.IsInfinity())
+            else if (point2.IsInfinity())
             {
                 return point1;
             }
-            BigInteger p = point1.Curve.P;
-            BigInteger Nx1 = point1.Nx;
-            BigInteger Nx2 = point2.Nx;
-            BigInteger Ny1 = point1.Ny;
-            BigInteger Ny2 = point2.Ny;
-            BigInteger U1 = point1.U;
-            BigInteger U2 = point2.U;
-            BigInteger sqr_U2 = Numerics.Modulo(BigInteger.Pow(U2, 2), p);
-            BigInteger sqr_U1 = Numerics.Modulo(BigInteger.Pow(U1, 2), p);
-            BigInteger cube_U1 = Numerics.Modulo(BigInteger.Pow(U1, 3), p);
-            BigInteger cube_U2 = Numerics.Modulo(BigInteger.Pow(U2, 3), p);
+            else
+            {
+                BigInteger p = point1.Curve.P;
+                BigInteger Nx1 = point1.Nx;
+                BigInteger Nx2 = point2.Nx;
+                BigInteger Ny1 = point1.Ny;
+                BigInteger Ny2 = point2.Ny;
+                if (point1 != point2 && point1 != Negate(point2))
+                {
+                    BigInteger U1 = point1.U;
+                    BigInteger U2 = point2.U;
+                    BigInteger sqr_U2 = Numerics.Modulo(BigInteger.Pow(U2, 2), p);
+                    BigInteger sqr_U1 = Numerics.Modulo(BigInteger.Pow(U1, 2), p);
+                    BigInteger cube_U1 = Numerics.Modulo(BigInteger.Pow(U1, 3), p);
+                    BigInteger cube_U2 = Numerics.Modulo(BigInteger.Pow(U2, 3), p);
 
-            BigInteger W3 = Numerics.Modulo(Ny2 * cube_U1 - Ny1 * cube_U2, p);
-            BigInteger q3 = Numerics.Modulo(Nx2 * sqr_U1 - Nx1 * sqr_U2, p);
-            BigInteger sqr_q3 = Numerics.Modulo(BigInteger.Pow(q3, 2), p);
-            BigInteger cube_q3 = Numerics.Modulo(BigInteger.Pow(q3, 3), p);
-            BigInteger U3 = Numerics.Modulo(U1 * U2 * q3, p);
-            BigInteger sqr_W = Numerics.Modulo(BigInteger.Pow(W3, 2), p);
+                    BigInteger W3 = Numerics.Modulo(Ny2 * cube_U1 - Ny1 * cube_U2, p);
+                    BigInteger q3 = Numerics.Modulo(Nx2 * sqr_U1 - Nx1 * sqr_U2, p);
+                    BigInteger sqr_q3 = Numerics.Modulo(BigInteger.Pow(q3, 2), p);
+                    BigInteger cube_q3 = Numerics.Modulo(BigInteger.Pow(q3, 3), p);
+                    BigInteger U3 = Numerics.Modulo(U1 * U2 * q3, p);
+                    BigInteger sqr_W = Numerics.Modulo(BigInteger.Pow(W3, 2), p);
 
 
-            BigInteger Nx3 = Numerics.Modulo(sqr_W - Nx1 * sqr_U2 * sqr_q3 - Nx2 * sqr_U1 * sqr_q3, p);
-            BigInteger Ny3 = Numerics.Modulo(W3 * (Nx1 * sqr_U2 * sqr_q3 - Nx3) - Ny1 * cube_U2 * cube_q3, p);
-            return new EiSiPoint(Nx3, Ny3, U3, point1.Curve);
+                    BigInteger Nx3 = Numerics.Modulo(sqr_W - Nx1 * sqr_U2 * sqr_q3 - Nx2 * sqr_U1 * sqr_q3, p);
+                    BigInteger Ny3 = Numerics.Modulo(W3 * (Nx1 * sqr_U2 * sqr_q3 - Nx3) - Ny1 * cube_U2 * cube_q3, p);
+                    return new EiSiPoint(Nx3, Ny3, U3, point1.Curve);
+                }
+                else if (point1 == Negate(point2) || point2 == Negate(point1))
+                {
+                    return EiSiPoint.InfinityPoint;
+                }
+                else if (point1 == point2)
+                {
+                    return Doubling(point1);
+                }
+                return EiSiPoint.InfinityPoint;
+            }
+
         }
 
 
         public static EiSiPoint Subtract(EiSiPoint point1, EiSiPoint point2)
         {
-            return Addition(point1, Negate(point2));
+            EiSiPoint negate_p2 = Negate(point2);
+            return Addition(point1, negate_p2);
         }
         public static EiSiPoint Negate(EiSiPoint point)
         {
-            BigInteger tmp = Numerics.Modulo(-point.Ny, point.Curve.P);
+            if (point.IsInfinity())
+            {
+                return point;
+            }
+            BigInteger tmp = Numerics.Modulo(point.Curve.P - point.Ny, point.Curve.P);
             return new EiSiPoint(point.Nx, tmp, point.U, point.Curve);
         }
         public static EiSiPoint operator -(EiSiPoint p1, EiSiPoint p2)
@@ -388,6 +410,37 @@ namespace ECCBase16
             return Multiply(scalar, p2);
         }
 
+        public static bool operator ==(EiSiPoint point1, EiSiPoint point2)
+        {
+            if (point1 is null && point2 is null)
+            {
+                return true;
+            }
+            else if ((point1 is null && !(point2 is null)) || (!(point1 is null) && point2 is null))
+            {
+                return false;
+            }
+            else
+            {
+                return point1.Nx == point2.Nx && point1.Ny == point2.Ny;
+            }
+        }
+        public static bool operator !=(EiSiPoint point1, EiSiPoint point2)
+        {
+            if (point1 is null && point2 is null)
+            {
+                return false;
+            }
+            else if (point1 is null && !(point2 is null) || !(point1 is null) && point2 is null)
+            {
+                return true;
+            }
+            else
+            {
+                return point1.Nx != point2.Nx || point1.Ny != point2.Ny || point1.U != point2.U;
+            }
+        }
+
         public static AffinePoint ToAffine(EiSiPoint point)
         {
             if (point.IsInfinity())
@@ -402,34 +455,31 @@ namespace ECCBase16
 
         public static EiSiPoint Multiply(BigInteger scalar, EiSiPoint point)
         {
-            if (!_dic_calculated.TryGetValue(scalar, out var result))
+
+            EiSiPoint result = InfinityPoint;
+            if (scalar == 0 || point.IsInfinity())
             {
-                if (scalar == 0 || point.IsInfinity())
-                {
-                    result = InfinityPoint;
-                }
-                else if (scalar == 1)
-                {
-                    result = point;
-                }
-                else if (scalar == 2)
-                {
-                    result = Doubling(point);
-                }
-                else if (scalar.IsEven)
-                {
-                    result = Doubling(Multiply(scalar / 2, point));
-                }
-                else
-                {
-                    result = Addition(Doubling(Multiply(scalar / 2, point)), point);
-                }
-                _dic_calculated.Add(scalar, result);
+                result = InfinityPoint;
             }
+            else if (scalar == 1)
+            {
+                result = point;
+            }
+            else if (scalar == 2)
+            {
+                result = Doubling(point);
+            }
+            else if (scalar.IsEven)
+            {
+                result = Doubling(Multiply(scalar / 2, point));
+            }
+            else
+            {
+                result = Addition(Doubling(Multiply(scalar / 2, point)), point);
+            }
+
             return result;
         }
-
-        public static Dictionary<BigInteger, EiSiPoint> _dic_calculated = new Dictionary<BigInteger, EiSiPoint>();
 
         public static EiSiPoint Base16Multiplicands(BigInteger scalar, EiSiPoint point)
         {
@@ -437,14 +487,22 @@ namespace ECCBase16
             {
                 return Multiply(scalar, point);
             }
+
+            Dictionary<BigInteger, EiSiPoint> _dic_calculated = new Dictionary<BigInteger, EiSiPoint>();
             List<int> key = Numerics.ToHexArray1(scalar);
             EiSiPoint output = EiSiPoint.InfinityPoint;
             for (int i = 0; i < key.Count; i++)
             {
-                EiSiPoint rP = EiSiPoint.Multiply(key[i], point);
+                if (!_dic_calculated.TryGetValue(key[i], out EiSiPoint rP))
+                {
+                    rP = EiSiPoint.Multiply(key[i], point);
+                    _dic_calculated.Add(key[i], rP);
+                }
                 output = 16 * output + rP;
             }
             return output;
         }
+
+
     }
 }

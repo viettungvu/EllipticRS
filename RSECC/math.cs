@@ -39,7 +39,7 @@ namespace RSECC
 
         public static Point Sub(Point p, Point q, BigInteger A, BigInteger P)
         {
-            Point intQ = new Point(q.x, Utils.Integer.modulo(-q.y, P));
+            Point intQ = new Point(q.x, Utils.Integer.modulo(P-q.y, P));
             return FromJacobian(JacobianAdd(ToJacobian(p), ToJacobian(intQ), A, P), P);
         }
 
