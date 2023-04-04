@@ -311,7 +311,7 @@ namespace ECCBase16
             EiSiPoint result;
             if (point.IsInfinity())
             {
-                result = InfinityPoint;
+                _ = InfinityPoint;
             }
             BigInteger a = point.Curve.A;
             BigInteger p = point.Curve.P;
@@ -422,7 +422,7 @@ namespace ECCBase16
             }
             else
             {
-                return point1.Nx == point2.Nx && point1.Ny == point2.Ny;
+                return point1.Nx == point2.Nx && point1.Ny == point2.Ny && point1.U==point2.U;
             }
         }
         public static bool operator !=(EiSiPoint point1, EiSiPoint point2)

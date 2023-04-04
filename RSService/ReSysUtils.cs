@@ -26,9 +26,9 @@ namespace RSService
         private static readonly string _sum_encrypt = "0.5.SumEncrypt.txt";
         private static readonly string _get_sum_encrypt = "0.6.Sum.txt";
 
-        private static bool _run_phase_1 = true;
-        private static bool _run_phase_2 = true;
-        private static bool _run_phase_3 = true;
+        private static bool _run_phase_1 = false;
+        private static bool _run_phase_2 = false;
+        private static bool _run_phase_3 = false;
         private static bool _run_phase_4 = true;
         private static bool _run_export_sum = true;
 
@@ -42,7 +42,7 @@ namespace RSService
             ConcurrentBag<string> concurrent_test = new ConcurrentBag<string>();
             try
             {
-                int n = 5   ;
+                int n = 5;
                 int m = 20;
                 Stopwatch sw = Stopwatch.StartNew();
 
@@ -241,7 +241,6 @@ namespace RSService
                                     if (p4.IsInfinity() || p4.U == 0)
                                     {
                                         concurrent_test.Add(string.Format("({0})+({1})-({2})=({3})", AffinePoint.ToString(EiSiPoint.ToAffine(p1)), AffinePoint.ToString(EiSiPoint.ToAffine(p2)), AffinePoint.ToString(EiSiPoint.ToAffine(p3)), AffinePoint.ToString(AffinePoint.InfinityPoint)));
-                                        //concurrent_test.Add(string.Format("({0})+({1})-({2})=({3})", p1.ToString(), p2.ToString(), p3.ToString(), AffinePoint.ToString(AffinePoint.InfinityPoint)));
                                         concurrent_1.Add(string.Format("{0},{1},{2},{3}", i, j, p4.Nx, p4.Ny));
                                     }
                                     else
@@ -313,9 +312,33 @@ namespace RSService
                             EiSiPoint Aj = EiSiPoint.InfinityPoint;
                             for (int i = 0; i < n; i++)
                             {
-                                AffinePoint tmp = EiSiPoint.ToAffine(Aj);
-                                Aj += AffinePoint.ToEiSiPoint(AUij[i, j]);
-                                concurrent_test.Add(string.Format("({0})+({1})=({2})", AffinePoint.ToString(tmp), AffinePoint.ToString(AUij[i, j]), AffinePoint.ToString(EiSiPoint.ToAffine(Aj))));
+                                if (i == 4 && j == 130)
+                                {
+                                    AffinePoint tmp = EiSiPoint.ToAffine(Aj);
+                                    concurrent_test.Add(string.Format("({0})+({1})=({2})", AffinePoint.ToString(tmp), AffinePoint.ToString(AUij[i, j]), AffinePoint.ToString(AffinePoint.InfinityPoint)));
+                                    EiSiPoint Aj_temp = EiSiPoint.Addition(Aj, AffinePoint.ToEiSiPoint(AUij[i, j]));
+                                    Aj = Aj_temp;
+                                    AffinePoint tmp2 = EiSiPoint.ToAffine(Aj);
+                                    concurrent_test.Add(string.Format("({0})+({1})=({2})", AffinePoint.ToString(tmp2), AffinePoint.ToString(AUij[i, j]), AffinePoint.ToString(EiSiPoint.ToAffine(Aj))));
+                                }
+                                try
+                                {
+                                    //AffinePoint tmp = EiSiPoint.ToAffine(Aj);
+                                    //concurrent_test.Add(string.Format("({0})+({1})=({2})", AffinePoint.ToString(tmp), AffinePoint.ToString(AUij[i, j]), AffinePoint.ToString(AffinePoint.InfinityPoint)));
+                                    //EiSiPoint Aj_temp = EiSiPoint.Addition(Aj, AffinePoint.ToEiSiPoint(AUij[i, j]));
+                                    //Aj = Aj_temp;
+                                    //AffinePoint tmp2 = EiSiPoint.ToAffine(Aj);
+                                    //concurrent_test.Add(string.Format("({0})+({1})=({2})", AffinePoint.ToString(tmp2), AffinePoint.ToString(AUij[i, j]), AffinePoint.ToString(EiSiPoint.ToAffine(Aj))));
+
+
+                                    EiSiPoint tmp = Aj;
+                                    Aj = AffinePoint.ToEiSiPoint(AUij[i, j]) + tmp;
+                                    concurrent_test.Add(string.Format("({0})+({1})=({2})", tmp.ToString(), AffinePoint.ToEiSiPoint(AUij[i, j]).ToString(), Aj.ToString()));
+                                }
+                                catch (Exception ex)
+                                {
+                                    throw;
+                                }
                             }
                             concurrent_1.Add(string.Format("{0},{1},{2},{3}", j, Aj.Nx, Aj.Ny, Aj.U));
                         }
@@ -324,8 +347,8 @@ namespace RSService
                         //    Aj[j] = EiSiPoint.InfinityPoint;
                         //    for (int i = 0; i < n; i++)
                         //    {
-                        //        //EiSiPoint tmp = EiSiPoint.Addition(Aj[j], AffinePoint.ToEiSiPoint(AUij[i, j]));
-                        //        //Aj[j] = tmp;
+                        //        EiSiPoint tmp = EiSiPoint.Addition(Aj[j], AffinePoint.ToEiSiPoint(AUij[i, j]));
+                        //        Aj[j] = tmp;
                         //        Aj[j] = Aj[j] + AffinePoint.ToEiSiPoint(AUij[i, j]);
                         //    }
                         //    concurrent_1.Add(string.Format("{0},{1},{2},{3}", j, Aj[j].Nx, Aj[j].Ny, Aj[j].U));
@@ -366,7 +389,7 @@ namespace RSService
 
                         throw;
                     }
-                    
+
                 }
             }
             catch (Exception ex)
@@ -392,7 +415,7 @@ namespace RSService
                 {
                     if (/*K.Ny == Aj[j].Ny && K.Nx == Aj[j].Nx && K.U == Aj[j].U*/ K == Aj[j])
                     {
-                        result[j]=i;
+                        result[j] = i;
                         count += 1;
                         if (count == ns - 1)
                         {
@@ -424,7 +447,7 @@ namespace RSService
                 {
                     R[i] = sum[i] / sum[i + m];
                 }
-                
+
             });
             ConcurrentBag<string> bag = new ConcurrentBag<string>();
             int l = 0;

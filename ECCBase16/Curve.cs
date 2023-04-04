@@ -48,7 +48,7 @@ namespace ECCBase16
 
                         G = new AffinePoint(BigInteger.Parse("003B4C382CE37AA192A4019E763036F4F5DD4D7EBB", NumberStyles.HexNumber), BigInteger.Parse("00938CF935318FDCED6BC28286531733C3F03C4FEE", NumberStyles.HexNumber), this);
 
-                        N = BigInteger.Parse("0000000000000000000001B8FA16DFAB9ACA16B6B3", NumberStyles.HexNumber);
+                        N = BigInteger.Parse("100000000000000000001B8FA16DFAB9ACA16B6B3", NumberStyles.HexNumber);
                         H = 1;
 
                         Length = 160;

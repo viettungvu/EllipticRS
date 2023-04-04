@@ -40,7 +40,7 @@ namespace FormTest
             setTime();
         }
 
-        private void setText(BigInteger x, BigInteger y, bool reset = true)
+        private void setText(BigInteger x, BigInteger y, BigInteger? z = null, bool reset = true)
         {
             if (reset)
             {
@@ -49,6 +49,11 @@ namespace FormTest
             tbox.AppendText("x=" + x);
             tbox.AppendText(Environment.NewLine);
             tbox.AppendText("y=" + y);
+            if (z != null)
+            {
+                tbox.AppendText(Environment.NewLine);
+                tbox.AppendText("z=" + z);
+            }
         }
 
         private void setTime()
@@ -178,14 +183,16 @@ namespace FormTest
             //EiSiPoint p2 = new EiSiPoint(11,12,8,_curve);
             //var test = EiSiPoint.Subtract(p1, p2);
             //AffinePoint p = EiSiPoint.ToAffine(test);
-            EiSiPoint p1 = new EiSiPoint(6, 5, 8, _curve);
-            EiSiPoint p2 = new EiSiPoint(6, 5, 9, _curve);
-            EiSiPoint p3 = new EiSiPoint(16, 4, 1, _curve);
-            var test = p1 - p2;
-            AffinePoint p = EiSiPoint.ToAffine(test);
-            setText(p.X, p.Y);
-            _sw.Stop();
-            //setText(p.X, p.Y);
+            EiSiPoint p1 = new EiSiPoint(13, 7, 14, _curve);
+            EiSiPoint p2 = new EiSiPoint(11, 12, 8, _curve);
+            EiSiPoint p3 = p1 + p2;
+            //EiSiPoint p4 = p2 + p1;
+            //var test = p3 - p4;
+            ////AffinePoint p = EiSiPoint.ToAffine(test);
+            ////setText(p.X, p.Y);
+            //_sw.Stop();
+            //setText(p3.Nx, p3.Ny,p3.U);
+            //setText(p4.Nx, p4.Ny, p4.U,false);
             setTime();
         }
 
@@ -193,11 +200,17 @@ namespace FormTest
         {
             _sw.Reset();
             _sw.Start();
+
+            EiSiPoint p1 = new EiSiPoint(BigInteger.Parse("23695177185302695959474394037632632634647038205"), BigInteger.Parse("603240289522561656651601992413550636336740688900"), BigInteger.Parse("419473684555853174556433946121262519071822226632"), _curve);
+            EiSiPoint p2 = new EiSiPoint(BigInteger.Parse("557943640025563640782133097065223563853896509928"), BigInteger.Parse("224104266571527473196064898897862771797759537015"), 1, _curve);
             //EiSiPoint p2 = new EiSiPoint(11, 12, 10, _curve);
-            //EiSiPoint test = EiSiPoint.DirectDoulbing(p2);
-            //AffinePoint p = EiSiPoint.ToAffine(test);
-            //_sw.Stop();
-            //setText(p.X, p.Y);
+            // EiSiPoint test =EiSiPoint.Addition(p1,p2);
+            EiSiPoint test = EiSiPoint.Addition(p1, p2);
+            EiSiPoint test2 = p2 + p1;
+            AffinePoint p = EiSiPoint.ToAffine(test);
+            setText(test.Nx, test.Ny, test.U);
+            setText(test2.Nx, test2.Ny, test2.U, false);
+            _sw.Stop();
             setTime();
         }
 
@@ -212,11 +225,11 @@ namespace FormTest
             {
                 for (int j = 0; j < m; j++)
                 {
-                    int r = rd.Next(0, max+1);
-                    bag.Add(string.Format("{0},{1},{2}", i+1, j+1, r));
+                    int r = rd.Next(0, max + 1);
+                    bag.Add(string.Format("{0},{1},{2}", i + 1, j + 1, r));
                 }
             }
-            WriteFile("Data.txt",string.Join(Environment.NewLine, bag), false);
+            WriteFile("Data.txt", string.Join(Environment.NewLine, bag), false);
         }
 
         private static string _data_folder = "D:\\Test\\Input";
