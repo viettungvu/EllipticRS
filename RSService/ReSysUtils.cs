@@ -42,8 +42,8 @@ namespace RSService
             ConcurrentBag<string> concurrent_test = new ConcurrentBag<string>();
             try
             {
-                int n = 2;
-                int m = 5;
+                int n = 5   ;
+                int m = 20;
                 Stopwatch sw = Stopwatch.StartNew();
 
                 int ns = m * (m + 5) / 2;
@@ -188,11 +188,13 @@ namespace RSService
 
 
                 #endregion
+
                 #region Pha 3 Gửi dữ liệu Những người dùng Ui thực hiện
                 if (_run_phase_3)
                 {
                     try
                     {
+                        n = 5;
                         EiSiPoint[] KPj = new EiSiPoint[nk];
                         string[] shared_key = ReadFileAsLine(_key_common);
 
@@ -284,7 +286,6 @@ namespace RSService
                     }
 
                 }
-
 
                 #endregion
 
@@ -389,7 +390,7 @@ namespace RSService
                 K = i * G;
                 for (int j = 0; j < ns; j++)
                 {
-                    if (K.Ny == Aj[j].Ny && K.Nx == Aj[j].Nx && K.U == Aj[j].U)
+                    if (/*K.Ny == Aj[j].Ny && K.Nx == Aj[j].Nx && K.U == Aj[j].U*/ K == Aj[j])
                     {
                         result[j]=i;
                         count += 1;
@@ -442,8 +443,8 @@ namespace RSService
 
         private static string _data_folder0 = Path.Combine(Directory.GetParent(Directory.GetCurrentDirectory()).Parent.FullName, "data");
 
-        private static string _input = "E:\\0. DATN\\Input";
-        private static string _data_folder = "E:\\0. DATN\\Output";
+        private static string _input = "D:\\Test\\Input";
+        private static string _data_folder = "D:\\Test\\Output";
         private static void WriteFile(string file_name, string content, bool append = true)
         {
             if (!string.IsNullOrWhiteSpace(file_name))

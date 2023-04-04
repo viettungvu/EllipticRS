@@ -1,6 +1,8 @@
-﻿using System.Diagnostics;
+﻿using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Drawing;
 using System.Numerics;
+using System.Text;
 using ECCBase16;
 using RSECC;
 using RSService;
@@ -176,9 +178,9 @@ namespace FormTest
             //EiSiPoint p2 = new EiSiPoint(11,12,8,_curve);
             //var test = EiSiPoint.Subtract(p1, p2);
             //AffinePoint p = EiSiPoint.ToAffine(test);
-            EiSiPoint p1 = new EiSiPoint(6,5,8, _curve);
-            EiSiPoint p2 = new EiSiPoint(6,5,9, _curve);
-            EiSiPoint p3 = new EiSiPoint(16,4,1, _curve);
+            EiSiPoint p1 = new EiSiPoint(6, 5, 8, _curve);
+            EiSiPoint p2 = new EiSiPoint(6, 5, 9, _curve);
+            EiSiPoint p3 = new EiSiPoint(16, 4, 1, _curve);
             var test = p1 - p2;
             AffinePoint p = EiSiPoint.ToAffine(test);
             setText(p.X, p.Y);
@@ -197,6 +199,46 @@ namespace FormTest
             //_sw.Stop();
             //setText(p.X, p.Y);
             setTime();
+        }
+
+        private void button12_Click(object sender, EventArgs e)
+        {
+            int n = 5;
+            int m = 20;
+            int max = 5;
+            Random rd = new Random();
+            ConcurrentBag<string> bag = new ConcurrentBag<string>();
+            for (int i = 0; i < n; i++)
+            {
+                for (int j = 0; j < m; j++)
+                {
+                    int r = rd.Next(0, max+1);
+                    bag.Add(string.Format("{0},{1},{2}", i+1, j+1, r));
+                }
+            }
+            WriteFile("Data.txt",string.Join(Environment.NewLine, bag), false);
+        }
+
+        private static string _data_folder = "D:\\Test\\Input";
+        private static void WriteFile(string file_name, string content, bool append = true)
+        {
+            if (!string.IsNullOrWhiteSpace(file_name))
+            {
+                if (!Directory.Exists(_data_folder))
+                {
+                    Directory.CreateDirectory(_data_folder);
+                }
+                string full_path = Path.Combine(_data_folder, file_name);
+                if (append)
+                {
+                    File.AppendAllText(full_path, content + "\n");
+                }
+                else
+                {
+
+                    File.WriteAllText(full_path, content);
+                }
+            }
         }
     }
 }
