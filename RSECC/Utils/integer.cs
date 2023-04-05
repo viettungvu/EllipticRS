@@ -2,7 +2,7 @@
 using System.Numerics;
 using System.Security.Cryptography;
 
-namespace RSECC.Utils
+namespace ECCJacobian.Utils
 {
 
     public static class Integer

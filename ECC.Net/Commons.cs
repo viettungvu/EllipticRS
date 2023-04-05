@@ -1,12 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Security.Cryptography;
-using System.Text;
+﻿using System.Security.Cryptography;
 
-namespace ECC.Net
+namespace ECCStandard
 {
-    internal static class Commons
-    {
-        internal static RandomNumberGenerator randomNumberGenerator = RandomNumberGenerator.Create();
-    }
+	/// <summary>
+	/// Common objects to more ECC.NET classes.
+	/// </summary>
+	internal static class Commons
+	{
+		internal static RandomNumberGenerator randomNumberGenerator = RandomNumberGenerator.Create();
+	}
 }

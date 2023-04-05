@@ -2,7 +2,7 @@
 using System.Numerics;
 using System;
 
-namespace RSECC
+namespace ECCJacobian
 {
 
     public class PrivateKey
@@ -12,19 +12,19 @@ namespace RSECC
         public BigInteger secret { get; private set; }
 
 
-        public PrivateKey(CurveType type=CurveType.sec160k1, BigInteger? secret = null)
+        public PrivateKey(CurveType type = CurveType.sec160k1, BigInteger? secret = null)
         {
-            this.curve = Curves.getCurveByType(type);
+            curve = Curves.getCurveByType(type);
             if (secret == null)
             {
-                secret = Utils.Integer.randomBetween(1, this.curve.order - 1);
+                secret = Utils.Integer.randomBetween(1, curve.N - 1);
             }
             this.secret = (BigInteger)secret;
         }
 
         public PublicKey publicKey()
         {
-            Point publicPoint = EcdsaMath.Multiply(curve.G, secret, curve.order, curve.A, curve.P);
+            Point publicPoint = EcdsaMath.Multiply(curve.G, secret, curve.N, curve.A, curve.P);
             return new PublicKey(publicPoint, curve);
         }
 

@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace RSECC.Utils
+namespace ECCJacobian.Utils
 {
 
     public static class String

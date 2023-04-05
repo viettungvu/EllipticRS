@@ -2,7 +2,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace RSECC
+namespace ECCJacobian
 {
 
     public class Signature

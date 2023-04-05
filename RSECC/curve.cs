@@ -2,7 +2,7 @@
 using System.Numerics;
 using System;
 
-namespace RSECC
+namespace ECCJacobian
 {
     public class CurveFp
     {
@@ -11,7 +11,7 @@ namespace RSECC
         public BigInteger P { get; private set; }
 
         //Bậc của điểm sinh
-        public BigInteger order { get; private set; }
+        public BigInteger N { get; private set; }
 
         //Điếm sinh G
         public Point G { get; private set; }
@@ -19,13 +19,13 @@ namespace RSECC
         public CurveType type { get; set; }
         public int[] oid { get; private set; }
 
-        public CurveFp(BigInteger A, BigInteger B, BigInteger P, BigInteger order, BigInteger Gx, BigInteger Gy, CurveType type, int[] oid)
+        public CurveFp(BigInteger A, BigInteger B, BigInteger P, BigInteger N, BigInteger Gx, BigInteger Gy, CurveType type, int[] oid)
         {
             this.A = A;
             this.B = B;
             this.P = P;
-            this.order = order;
-            this.G = new Point(Gx, Gy);
+            this.N = N;
+            G = new Point(Gx, Gy);
             this.type = type;
             this.oid = oid;
         }
@@ -51,7 +51,7 @@ namespace RSECC
 
         public int length()
         {
-            return order.ToString("X").Length / 2;
+            return N.ToString("X").Length / 2;
         }
 
     }

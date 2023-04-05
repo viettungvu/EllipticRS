@@ -4,7 +4,7 @@ using System.Drawing;
 using System.Numerics;
 using System.Text;
 using ECCBase16;
-using RSECC;
+using ECCJacobian;
 using RSService;
 using static System.Net.Mime.MediaTypeNames;
 
@@ -131,8 +131,8 @@ namespace FormTest
         {
             _sw.Reset();
             _sw.Start();
-            RSECC.Point point = new RSECC.Point(5, 1);
-            RSECC.Point p = EcdsaMath.Multiply(point, BigInteger.Parse(_test), 19, 2, 17);
+            ECCJacobian.Point point = new ECCJacobian.Point(5, 1);
+            ECCJacobian.Point p = EcdsaMath.Multiply(point, BigInteger.Parse(_test), 19, 2, 17);
             _sw.Stop();
             setText(p.x, p.y);
             setTime();
@@ -145,7 +145,8 @@ namespace FormTest
             try
             {
                 //ReSysUtils.Run();
-                ReSysUtils.RunJacobian();
+               // ReSysUtils.RunJacobian();
+                ReSysUtils.RunStandard();
 
             }
             catch (Exception ex)

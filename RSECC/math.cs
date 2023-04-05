@@ -2,8 +2,7 @@
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Security.Cryptography;
 
-
-namespace RSECC
+namespace ECCJacobian
 {
 
     public class EcdsaMath
@@ -16,9 +15,9 @@ namespace RSECC
 
             //:param p: First Point to mutiply
             //:param n: Scalar to mutiply
-            //: param order: Order of the elliptic curve
+            //: param N: Order of the elliptic curve
             // : param P: Prime number in the module of the equation Y^2 = X ^ 3 + A * X + B(mod p)
-            //:param A: Coefficient of the first-order term of the equation Y ^ 2 = X ^ 3 + A * X + B(mod p)
+            //:param A: Coefficient of the first-N term of the equation Y ^ 2 = X ^ 3 + A * X + B(mod p)
             //:return: Point that represents the sum of First and Second Point
 
             return FromJacobian(JacobianMultiply(ToJacobian(p), n, N, A, P), P);
@@ -31,7 +30,7 @@ namespace RSECC
             //:param p: First Point you want to add
             //:param q: Second Point you want to add
             //:param P: Prime number in the module of the equation Y^2 = X ^ 3 + A * X + B(mod p)
-            //:param A: Coefficient of the first-order term of the equation Y ^ 2 = X ^ 3 + A * X + B(mod p)
+            //:param A: Coefficient of the first-N term of the equation Y ^ 2 = X ^ 3 + A * X + B(mod p)
             //:return: Point that represents the sum of First and Second Point
 
             return FromJacobian(JacobianAdd(ToJacobian(p), ToJacobian(q), A, P), P);
@@ -39,7 +38,7 @@ namespace RSECC
 
         public static Point Sub(Point p, Point q, BigInteger A, BigInteger P)
         {
-            Point intQ = new Point(q.x, Utils.Integer.modulo(P-q.y, P));
+            Point intQ = new Point(q.x, Utils.Integer.modulo(P - q.y, P));
             return FromJacobian(JacobianAdd(ToJacobian(p), ToJacobian(intQ), A, P), P);
         }
 
@@ -112,7 +111,7 @@ namespace RSECC
 
         public static Point JacobianSub(Point p, Point q, BigInteger A, BigInteger P)
         {
-            Point negative = new Point(q.x,Utils.Integer.modulo(-q.y, P), q.z);
+            Point negative = new Point(q.x, Utils.Integer.modulo(-q.y, P), q.z);
             return JacobianAdd(p, negative, A, P);
         }
         public static Point JacobianDouble(Point p, BigInteger A, BigInteger P)
@@ -121,7 +120,7 @@ namespace RSECC
 
             //:param p: Point you want to double
             //:param P: Prime number in the module of the equation Y^2 = X ^ 3 + A * X + B(mod p)
-            //:param A: Coefficient of the first-order term of the equation Y ^ 2 = X ^ 3 + A * X + B(mod p)
+            //:param A: Coefficient of the first-N term of the equation Y ^ 2 = X ^ 3 + A * X + B(mod p)
             //:return: Point that represents the sum of First and Second Point
 
             if (p.y.IsZero)
@@ -147,7 +146,7 @@ namespace RSECC
             // :param p: First Point you want to Add
             // :param q: Second Point you want to Add
             // :param P: Prime number in the module of the equation Y^2 = X^3 + A*X + B (mod p)
-            // :param A: Coefficient of the first-order term of the equation Y^2 = X^3 + A*X + B (mod p)
+            // :param A: Coefficient of the first-N term of the equation Y^2 = X^3 + A*X + B (mod p)
             // :return: Point that represents the sum of First and Second Point
 
             if (p.y.IsZero)
@@ -191,9 +190,9 @@ namespace RSECC
 
             // :param p: First Point to mutiply
             // :param n: Scalar to mutiply
-            // :param order: Order of the elliptic curve
+            // :param N: Order of the elliptic curve
             // :param P: Prime number in the module of the equation Y^2 = X^3 + A*X + B (mod p)
-            // :param A: Coefficient of the first-order term of the equation Y^2 = X^3 + A*X + B (mod p)
+            // :param A: Coefficient of the first-N term of the equation Y^2 = X^3 + A*X + B (mod p)
             // :return: Point that represents the sum of First and Second Point
 
             if (p.y.IsZero | n.IsZero)

@@ -2,7 +2,7 @@
 using System.Numerics;
 using System.Text;
 
-namespace RSECC
+namespace ECCJacobian
 {
 
     public static class Ecdsa
@@ -13,10 +13,10 @@ namespace RSECC
             string hashMessage = sha256(message);
             BigInteger numberMessage = Utils.BinaryAscii.numberFromHex(hashMessage);
             CurveFp curve = privateKey.curve;
-            BigInteger randNum = Utils.Integer.randomBetween(BigInteger.One, curve.order - 1);
-            Point randSignPoint = EcdsaMath.Multiply(curve.G, randNum, curve.order, curve.A, curve.P);
-            BigInteger r = Utils.Integer.modulo(randSignPoint.x, curve.order);
-            BigInteger s = Utils.Integer.modulo((numberMessage + r * privateKey.secret) * EcdsaMath.Inv(randNum, curve.order), curve.order);
+            BigInteger randNum = Utils.Integer.randomBetween(BigInteger.One, curve.N - 1);
+            Point randSignPoint = EcdsaMath.Multiply(curve.G, randNum, curve.N, curve.A, curve.P);
+            BigInteger r = Utils.Integer.modulo(randSignPoint.x, curve.N);
+            BigInteger s = Utils.Integer.modulo((numberMessage + r * privateKey.secret) * EcdsaMath.Inv(randNum, curve.N), curve.N);
 
             return new Signature(r, s);
         }
@@ -29,28 +29,28 @@ namespace RSECC
             BigInteger sigR = signature.r;
             BigInteger sigS = signature.s;
 
-            if (sigR < 1 || sigR >= curve.order)
+            if (sigR < 1 || sigR >= curve.N)
             {
                 return false;
             }
-            if (sigS < 1 || sigS >= curve.order)
+            if (sigS < 1 || sigS >= curve.N)
             {
                 return false;
             }
 
-            BigInteger inv = EcdsaMath.Inv(sigS, curve.order);
+            BigInteger inv = EcdsaMath.Inv(sigS, curve.N);
 
             Point u1 = EcdsaMath.Multiply(
                 curve.G,
-                Utils.Integer.modulo(numberMessage * inv, curve.order),
-                curve.order,
+                Utils.Integer.modulo(numberMessage * inv, curve.N),
+                curve.N,
                 curve.A,
                 curve.P
             );
             Point u2 = EcdsaMath.Multiply(
                 publicKey.point,
-                Utils.Integer.modulo(sigR * inv, curve.order),
-                curve.order,
+                Utils.Integer.modulo(sigR * inv, curve.N),
+                curve.N,
                 curve.A,
                 curve.P
             );
@@ -64,7 +64,7 @@ namespace RSECC
             {
                 return false;
             }
-            return Utils.Integer.modulo(v.x, curve.order) == sigR;
+            return Utils.Integer.modulo(v.x, curve.N) == sigR;
         }
 
         private static string sha256(string message)

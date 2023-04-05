@@ -9,7 +9,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FormTest", "FormTest\FormTe
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECCJacobian", "RSECC\ECCJacobian.csproj", "{AFDFECAB-F994-40BA-A135-FF8358875618}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RSService", "RSService\RSService.csproj", "{EF637AFF-7768-4E09-A919-05D82F4FAEC4}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RSService", "RSService\RSService.csproj", "{EF637AFF-7768-4E09-A919-05D82F4FAEC4}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ECCStandard", "ECC.NET\ECCStandard.csproj", "{84A970F8-4D3A-4042-8233-4A056256D6DC}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ECC.NET.Exceptions", "ECC.NET.Exceptions\ECC.NET.Exceptions.csproj", "{A953C8A1-AAC6-429C-AA68-EC7495FCA181}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -33,6 +37,14 @@ Global
 		{EF637AFF-7768-4E09-A919-05D82F4FAEC4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EF637AFF-7768-4E09-A919-05D82F4FAEC4}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EF637AFF-7768-4E09-A919-05D82F4FAEC4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{84A970F8-4D3A-4042-8233-4A056256D6DC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{84A970F8-4D3A-4042-8233-4A056256D6DC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{84A970F8-4D3A-4042-8233-4A056256D6DC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{84A970F8-4D3A-4042-8233-4A056256D6DC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A953C8A1-AAC6-429C-AA68-EC7495FCA181}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A953C8A1-AAC6-429C-AA68-EC7495FCA181}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A953C8A1-AAC6-429C-AA68-EC7495FCA181}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A953C8A1-AAC6-429C-AA68-EC7495FCA181}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace RSECC
+namespace ECCJacobian
 {
     public enum CurveType
     {

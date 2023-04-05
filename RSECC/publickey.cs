@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System;
 
-namespace RSECC
+namespace ECCJacobian
 {
 
     public class PublicKey
@@ -148,9 +148,9 @@ encodedEcAndOid,
             {
                 throw new ArgumentException("Point (" + p.x.ToString() + "," + p.y.ToString() + ") is not valid for curve " + curveObject.type);
             }
-            if (!EcdsaMath.Multiply(p, curveObject.order, curveObject.order, curveObject.A, curveObject.P).IsInfinity())
+            if (!EcdsaMath.Multiply(p, curveObject.N, curveObject.N, curveObject.A, curveObject.P).IsInfinity())
             {
-                throw new ArgumentException("Point (" + p.x.ToString() + "," + p.y.ToString() + ") * " + curveObject.type + ".order is not at infinity");
+                throw new ArgumentException("Point (" + p.x.ToString() + "," + p.y.ToString() + ") * " + curveObject.type + ".N is not at infinity");
             }
             return publicKey;
         }

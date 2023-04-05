@@ -2,7 +2,7 @@
 using System.Numerics;
 
 
-namespace RSECC
+namespace ECCJacobian
 {
 
     public class Point

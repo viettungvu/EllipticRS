@@ -1,4 +1,4 @@
-﻿namespace RSECC.Utils
+﻿namespace ECCJacobian.Utils
 {
 
     public static class File
@@ -12,7 +12,7 @@
         public static byte[] readBytes(string path)
         {
             return System.IO.File.ReadAllBytes(path);
-        }      
+        }
 
     }
 

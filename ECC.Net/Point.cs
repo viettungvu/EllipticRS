@@ -1,46 +1,178 @@
-﻿using System;
+﻿using ECC.NET.Exceptions;
+using System;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 
-namespace ECC.Net
+namespace ECCStandard
 {
+    /// <summary>
+    /// ECC.NET elliptic-curve point class.
+    /// </summary>
     public class Point
     {
+        public static Point InfinityPoint => new Point(0, 0, null);
+        public static bool IsInfinityPoint(Point point) => point == InfinityPoint || point.Y.IsZero;
+
         public BigInteger X { get; set; }
         public BigInteger Y { get; set; }
-        public BigInteger Z { get; set; }
-
         public Curve Curve { get; set; }
 
-        public static Point InfinityPoint => new Point(1, 1, 0);
-
-        public static bool IsInfinityPoint(Point point) => point == InfinityPoint;
-        public Point(BigInteger x, BigInteger y, BigInteger? z = null, Curve curve=null)
+        /// <summary>
+        /// Creates an elliptic-curve point instance.
+        /// </summary>
+        /// <param name="x">X coordinate.</param>
+        /// <param name="y">Y coordinate.</param>
+        /// <param name="curve">Appropriate elliptic-curve instance.</param>
+        public Point(BigInteger x, BigInteger y, Curve curve)
         {
-            this.X = x;
-            this.Y = y;
-            BigInteger zOne = z ?? 1;
-            this.Z = zOne;
-            this.Curve = curve;
+            X = x;
+            Y = y;
+
+            Curve = curve;
         }
 
-        public static Point operator +(Point p, Point Q)
+        /// <summary>
+        /// Checks whether the point is valid.
+        /// </summary>
+        /// <param name="exception">Exception to be thrown if the point is not valid.</param>
+        public void CheckPoint(Exception exception) => Curve.CheckPoint(this, exception);
+
+        /// <summary>
+        /// Multiplies given point by given scalar.
+        /// </summary>
+        /// <param name="scalar">Scalar to multiply by.</param>
+        /// <param name="point">Point to be multiplied.</param>
+        /// <returns></returns>
+        public static Point Multiply(BigInteger scalar, Point point)
         {
-            return new Point(0, 0, 1);
+            if (IsInfinityPoint(point) || scalar % point.Curve.N == 0)
+                return InfinityPoint;
+
+            point.Curve.CheckPoint(point, new InvalidPointException("Point is not on specified curve."));
+
+            if (scalar < 0)
+                return Multiply(-scalar, Negate(point));
+
+            Point result = InfinityPoint;
+            Point addend = point;
+
+            while (scalar != 0)
+            {
+                if ((scalar & 1) == 1)
+                    result = Add(result, addend);
+
+                addend = Add(addend, addend);
+
+                scalar >>= 1;
+            }
+
+            point.Curve.CheckPoint(result, new InvalidPointException("Point is not on specified curve."));
+
+            return result;
         }
 
-        public static Point operator -(Point p, Point q)
+        /// <summary>
+        /// Adds two points on the same curve.
+        /// </summary>
+        /// <param name="first"></param>
+        /// <param name="second"></param>
+        /// <returns></returns>
+        public static Point Add(Point first, Point second)
         {
-            return new Point(0, 0, 1);
+            if (IsInfinityPoint(first))
+                return second;
+
+            if (IsInfinityPoint(second))
+                return first;
+
+            Curve commonCurve;
+
+            if (first.Curve == second.Curve)
+                commonCurve = first.Curve;
+            else
+                throw new CurvesMismatchException("Used curves does not match.");
+
+            commonCurve.CheckPoint(first, new InvalidPointException("Point is not on specified curve."));
+            commonCurve.CheckPoint(second, new InvalidPointException("Point is not on specified curve."));
+
+            BigInteger temporary;
+
+            if (first.X == second.X)
+            {
+                if (first.Y != second.Y)
+                    return InfinityPoint;
+
+                temporary = (3 * BigInteger.Pow(first.X, 2) + commonCurve.A) * Numerics.ModularInverse(2 * first.Y, commonCurve.P);
+            }
+            else
+                temporary = (first.Y - second.Y) * Numerics.ModularInverse(first.X - second.X, commonCurve.P);
+
+            BigInteger newX = BigInteger.Pow(temporary, 2) - first.X - second.X;
+            BigInteger newY = first.Y + temporary * (newX - first.X);
+            Point result = new Point(Numerics.Modulus(newX, commonCurve.P), Numerics.Modulus(-newY, commonCurve.P), commonCurve);
+
+            return result;
         }
 
-        public static Point operator *(Point p, BigInteger scalar)
+        /// <summary>
+        /// Adds multiple points on the same curve.
+        /// </summary>
+        /// <param name="points">Points to add.</param>
+        /// <returns></returns>
+        public static Point Add(params Point[] points)
         {
-            return new Point(0, 0, 1);
+            if (points.Length <= 2)
+                throw new ArgumentException("Minimum number of points is 2.");
+
+            Point result = InfinityPoint;
+            for (int i = 1; i < points.Length; i++)
+                result = Add(points[i - 1], points[i]);
+
+            return result;
         }
 
-        public Point Double(Point point)
+        /// <summary>
+        /// Doubles a point.
+        /// </summary>
+        /// <param name="point">Point to double.</param>
+        /// <returns></returns>
+        public static Point Double(Point point)
         {
-            return new Point(0, 0, 1);
+            return Add(point, point);
+        }
+
+        /// <summary>
+        /// Negates a point.
+        /// </summary>
+        /// <param name="point">Point to negate.</param>
+        /// <returns></returns>
+        public static Point Negate(Point point)
+        {
+            point.CheckPoint(new InvalidPointException("Point is not on specified curve."));
+
+            if (IsInfinityPoint(point))
+                return point;
+
+            Point result = new Point(point.X, Numerics.Modulus(-point.Y, point.Curve.P), point.Curve);
+
+            result.CheckPoint(new InvalidPointException("Point is not on specified curve."));
+
+            return result;
+        }
+
+        public override string ToString()
+        {
+            return string.Format("{0},{1}", X, Y);
+        }
+
+        /// <summary>
+        /// Return formatted string representing a point.
+        /// </summary>
+        /// <param name="format">Target format, where X represents X coordinate and Y represents Y coordinate.</param>
+        /// <returns></returns>
+        public string ToString(string format)
+        {
+            return format.Replace("X", X.ToString()).Replace("Y", Y.ToString());
         }
     }
 }
