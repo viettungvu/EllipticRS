@@ -60,7 +60,7 @@ namespace RSECC
                 curve.A,
                 curve.P
             );
-            if (v.isAtInfinity())
+            if (v.IsInfinity())
             {
                 return false;
             }

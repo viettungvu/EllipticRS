@@ -140,7 +140,7 @@ encodedEcAndOid,
             {
                 return publicKey;
             }
-            if (p.isAtInfinity())
+            if (p.IsInfinity())
             {
                 throw new ArgumentException("Public Key point is at infinity");
             }
@@ -148,7 +148,7 @@ encodedEcAndOid,
             {
                 throw new ArgumentException("Point (" + p.x.ToString() + "," + p.y.ToString() + ") is not valid for curve " + curveObject.type);
             }
-            if (!EcdsaMath.Multiply(p, curveObject.order, curveObject.order, curveObject.A, curveObject.P).isAtInfinity())
+            if (!EcdsaMath.Multiply(p, curveObject.order, curveObject.order, curveObject.A, curveObject.P).IsInfinity())
             {
                 throw new ArgumentException("Point (" + p.x.ToString() + "," + p.y.ToString() + ") * " + curveObject.type + ".order is not at infinity");
             }

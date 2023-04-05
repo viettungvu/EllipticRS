@@ -21,14 +21,15 @@ namespace RSECC
             this.z = zeroZ;
         }
 
-        public bool isAtInfinity()
+        public bool IsInfinity()
         {
             return y == 0;
         }
+        public static Point InfinityPoint => new Point(0, 0);
 
         public override string ToString()
         {
-            return string.Format("{0};{1}", x, y);
+            return string.Format("{0},{1}", x, y);
         }
 
         public static bool operator ==(Point left, Point right)

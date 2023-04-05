@@ -17,6 +17,7 @@ namespace RSService
     public static class ReSysUtils
     {
         private static readonly ECCBase16.Curve _curve = new ECCBase16.Curve(ECCBase16.CurveName.secp160k1);
+        private static readonly RSECC.CurveFp _curve_jacobian = Curves.getCurveByType(CurveType.sec160k1);
         private static Stopwatch _sw = new Stopwatch();
 
         private static readonly string _key_user_prv = "0.1.KeyUserPrv.txt";
@@ -26,16 +27,15 @@ namespace RSService
         private static readonly string _sum_encrypt = "0.5.SumEncrypt.txt";
         private static readonly string _get_sum_encrypt = "0.6.Sum.txt";
 
-        private static bool _run_phase_1 = false;
-        private static bool _run_phase_2 = false;
-        private static bool _run_phase_3 = false;
+        private static bool _run_phase_1 = true;
+        private static bool _run_phase_2 = true;
+        private static bool _run_phase_3 = true;
         private static bool _run_phase_4 = true;
         private static bool _run_export_sum = true;
 
         private static int max = 5;
         public static void Run()
         {
-            BasicConfigurator.Configure();
             ConcurrentBag<string> concurrent_1 = new ConcurrentBag<string>();
             ConcurrentBag<string> concurrent_2 = new ConcurrentBag<string>();
 
@@ -401,7 +401,6 @@ namespace RSService
 
 
         }
-
         public static int[] BRF(ECCBase16.EiSiPoint[] Aj, Curve curve, int ns, int max)
         {
             int[] result = new int[ns];
@@ -413,7 +412,7 @@ namespace RSService
                 K = i * G;
                 for (int j = 0; j < ns; j++)
                 {
-                    if (/*K.Ny == Aj[j].Ny && K.Nx == Aj[j].Nx && K.U == Aj[j].U*/ K == Aj[j])
+                    if (K.Ny == Aj[j].Ny && K.Nx == Aj[j].Nx && K.U == Aj[j].U /*K == Aj[j]*/)
                     {
                         result[j] = i;
                         count += 1;
@@ -432,6 +431,35 @@ namespace RSService
             return result;
         }
 
+        public static int[] BRFJacobian(Point[] Aj, CurveFp curve, int ns, int max)
+        {
+            int[] result = new int[ns];
+            Point K = Point.InfinityPoint;
+
+            int count = 0;
+            for (int i = 0; i < max; i++)
+            {
+                K = EcdsaMath.JacobianMultiply(curve.G, i, curve.order, curve.A, curve.P);
+                for (int j = 0; j < ns; j++)
+                {
+                    if (K.x == Aj[j].x && K.y == Aj[j].y)
+                    {
+                        result[j] = i;
+                        count += 1;
+                        if (count == ns - 1)
+                        {
+                            break;
+                        }
+                    }
+                }
+                if (count == ns - 1)
+                {
+                    break;
+                }
+            }
+
+            return result;
+        }
 
         public static void Sim(int[] sum, int m)
         {
@@ -464,10 +492,357 @@ namespace RSService
         }
 
 
+
+        public static void RunJacobian()
+        {
+            ConcurrentBag<string> concurrent_1 = new ConcurrentBag<string>();
+            ConcurrentBag<string> concurrent_2 = new ConcurrentBag<string>();
+
+            ConcurrentBag<string> concurrent_test = new ConcurrentBag<string>();
+            try
+            {
+                int n = 5;
+                int m = 20;
+                Stopwatch sw = Stopwatch.StartNew();
+
+                int ns = m * (m + 5) / 2;
+                int nk = (int)Math.Ceiling(0.5 + Math.Sqrt(ns * 2 + 0.25));
+                int[,] Ri = new int[n, m];
+                for (int i = 0; i < n; i++)
+                {
+                    for (int j = 0; j < m; j++)
+                    {
+                        Ri[i, j] = 0;
+                    }
+                }
+
+                string[] data = ReadFileInput("Data.txt");
+                Parallel.ForEach(data, line =>
+                {
+                    string[] values = line.Split(',');
+                    Ri[int.Parse(values[0]) - 1, int.Parse(values[1]) - 1] = int.Parse(values[2]);
+                });
+                int[,] Rns = new int[n, ns];
+                for (int i = 0; i < n; i++)
+                {
+                    for (int j = 0; j < m; j++)
+                    {
+                        Rns[i, j] = Ri[i, j];
+                    }
+                    for (int j = m; j < 2 * m; j++)
+                    {
+                        if (Ri[i, j - m] == 0) Rns[i, j] = 0;
+                        else Rns[i, j] = 1;
+                    }
+                    for (int j = 2 * m; j < 3 * m; j++)
+                    {
+                        Rns[i, j] = Ri[i, j - 2 * m] * Ri[i, j - 2 * m];
+                    }
+
+                    int t = 3 * m;
+                    for (int t2 = 0; t2 < n - 1; t2++)
+                    {
+                        for (int t22 = t2 + 1; t22 < m; t22++)
+                        {
+                            Rns[i, t] = Ri[i, t2] * Ri[i, t22];
+                            t++;
+                        }
+                    }
+                }
+
+
+
+                BigInteger[,] ksuij = new BigInteger[n, nk];
+                Point[,] KPUij = new Point[n, nk];
+                #region Pha 1 Chuẩn bị các khóa Những người dùng UI thực hiện
+                if (_run_phase_1)
+                {
+                    
+                    sw.Start();
+                    for (int i = 0; i < n; i++)
+                    {
+                        for (int j = 0; j < nk; j++)
+                        {
+                            BigInteger secret = RSECC.Utils.Integer.randomBetween(1, _curve_jacobian.order - 1);
+                            Point pub = EcdsaMath.JacobianMultiply(_curve_jacobian.G, secret, _curve_jacobian.order, _curve_jacobian.A, _curve_jacobian.P);
+                            concurrent_1.Add(string.Format("{0},{1},{2}", i, j, secret));
+                            Point p = EcdsaMath.FromJacobian(pub, _curve_jacobian.P);
+                            concurrent_2.Add(string.Format("{0},{1},{2},{3}", i, j, p.x, p.y));
+                        }
+                    }
+                    //Parallel.For(0, n, i =>
+                    //{
+                    //    Parallel.For(0, nk, j =>
+                    //    {
+                    //        BigInteger secret = ECCBase16.Numerics.RandomBetween(1, _curve.N - 1);
+                    //        ECCBase16.EiSiPoint pub = EiSiPoint.Base16Multiplicands(secret, G);
+                    //        AffinePoint pub_in_affine = EiSiPoint.ToAffine(pub);
+                    //        concurrent_1.Add(string.Format("{0},{1},{2}", i, j, secret));
+                    //        concurrent_2.Add(string.Format("{0},{1},{2},{3}", i, j, pub_in_affine.X, pub_in_affine.Y));
+                    //    });
+                    //});
+                    sw.Stop();
+
+                    WriteFile(_key_user_prv, string.Join(Environment.NewLine, concurrent_1), false);
+                    WriteFile(_key_user_pub, string.Join(Environment.NewLine, concurrent_2), false);
+                    Clear(concurrent_1);
+                    Clear(concurrent_2);
+                }
+                #endregion
+
+                #region Pha 2 Tính các khóa công khai dùng chung Máy chủ thực hiện
+
+                if (_run_phase_2)
+                {
+                    try
+                    {
+                        string[] key_user_pub = ReadFileAsLine(_key_user_pub);
+                        Parallel.ForEach(key_user_pub, line =>
+                        {
+                            string[] values = line.Split(',');
+                            KPUij[int.Parse(values[0]), int.Parse(values[1])] = new Point(BigInteger.Parse(values[2]), BigInteger.Parse(values[3]));
+                        });
+
+                        sw.Reset();
+                        sw.Start();
+                        for (int j = 0; j < nk; j++)
+                        {
+                            Point KPj = Point.InfinityPoint;
+                            for (int i = 0; i < n; i++)
+                            {
+                                Point p1 = EcdsaMath.FromJacobian(KPj, _curve_jacobian.P);
+                                Point p2 = KPUij[i, j];
+                                KPj = EcdsaMath.JacobianAdd(KPUij[i, j], KPj, _curve_jacobian.A, _curve_jacobian.P);
+                                Point p3 = EcdsaMath.FromJacobian(KPj, _curve_jacobian.P);
+                                concurrent_test.Add(string.Format("({0},{1}) + ({2},{3})=({4},{5})", p1.x, p1.y, p2.x, p2.y, p3.x, p3.y));
+                            }
+                            Point p = EcdsaMath.FromJacobian(KPj, _curve_jacobian.P);
+                            concurrent_1.Add(string.Format("{0},{1},{2}", j, p.x, p.y));
+                        }
+                        //Parallel.For(0, nk, j =>
+                        //{
+                        //    KPj[j] =  EiSiPoint.InfinityPoint;
+                        //    for (int i = 0; i < n; i++)
+                        //    {
+                        //        KPj[j] = EiSiPoint.Addition(KPj[j], KPUij[i, j]);
+                        //    }
+                        //    AffinePoint p = EiSiPoint.ToAffine(KPj[j]);
+                        //    concurrent_1.Add(string.Format("{0},{1},{2}", j, p.X, p.Y));
+                        //});
+                        //sw.Stop();
+
+                        WriteFile(_key_common, string.Join(Environment.NewLine, concurrent_1), false);
+                        Clear(concurrent_1);
+                    }
+                    catch (Exception ex)
+                    {
+
+                        throw;
+                    }
+
+                }
+
+
+                #endregion
+
+                #region Pha 3 Gửi dữ liệu Những người dùng Ui thực hiện
+                if (_run_phase_3)
+                {
+                    try
+                    {
+                        n = 5;
+                        Point[] KPj = new Point[nk];
+                        string[] shared_key = ReadFileAsLine(_key_common);
+
+                        Parallel.ForEach(shared_key, line =>
+                        {
+                            if (!string.IsNullOrWhiteSpace(line))
+                            {
+                                string[] values = line.Split(',');
+                                KPj[int.Parse(values[0])] = new Point(BigInteger.Parse(values[1]), BigInteger.Parse(values[2]));
+                            }
+                        });
+
+                        string[] key_user_prv = ReadFileAsLine(_key_user_prv);
+                        Parallel.ForEach(key_user_prv, line =>
+                        {
+                            if (!string.IsNullOrWhiteSpace(line))
+                            {
+                                string[] values = line.Split(',');
+                                ksuij[int.Parse(values[0]), int.Parse(values[1])] = BigInteger.Parse(values[2]);
+                            }
+                        });
+
+                        sw.Reset();
+                        sw.Start();
+
+                        Dictionary<int, Point> dic_repeated = new Dictionary<int, Point>();
+
+                        for (int i = 0; i < n; i++)
+                        {
+                            int j = 0;
+                            for (int t = 0; t < nk - 1; t++)
+                            {
+                                for (int k = t + 1; k < nk; k++)
+                                {
+                                    if (!dic_repeated.TryGetValue(Rns[i, j], out Point p1))
+                                    {
+                                        p1 = EcdsaMath.JacobianMultiply(_curve_jacobian.G, Rns[i, j], _curve_jacobian.order, _curve_jacobian.A, _curve_jacobian.P);
+                                        dic_repeated.Add(Rns[i, j], p1);
+                                        concurrent_test.Add(string.Format("{0}*({1})=({2})", Rns[i, j], _curve_jacobian.G.ToString(), EcdsaMath.FromJacobian(p1, _curve_jacobian.P).ToString()));
+                                    }
+                                    Point p2 = EcdsaMath.JacobianMultiply(KPj[t], ksuij[i, k], _curve_jacobian.order, _curve_jacobian.A, _curve_jacobian.P);
+                                    Point p3 = EcdsaMath.JacobianMultiply(KPj[k], ksuij[i, t], _curve_jacobian.order, _curve_jacobian.A, _curve_jacobian.P);
+                                    Point p4 = EcdsaMath.JacobianSub(EcdsaMath.Add(p1, p2, _curve_jacobian
+                                        .A, _curve_jacobian.P), p3, _curve_jacobian.A, _curve_jacobian.P);
+                                    if (p4.IsInfinity())
+                                    {
+                                        concurrent_test.Add(string.Format("({0})+({1})-({2})=({3})", EcdsaMath.FromJacobian(p1, _curve_jacobian.P).ToString(), EcdsaMath.FromJacobian(p2, _curve_jacobian.P).ToString(), EcdsaMath.FromJacobian(p3, _curve_jacobian.P).ToString(), EcdsaMath.FromJacobian(p4, _curve_jacobian.P).ToString()));
+                                        concurrent_1.Add(string.Format("{0},{1},{2},{3}", i, j, 0, 0));
+                                    }
+                                    else
+                                    {
+                                        Point p5 = EcdsaMath.FromJacobian(p4, _curve_jacobian.P);
+                                        concurrent_1.Add(string.Format("{0},{1},{2},{3}", i, j, p5.x, p5.y));
+                                    }
+                                    if (j == ns - 1) break;
+                                    else j++;
+                                }
+                                if (j == ns - 1) break;
+                            }
+                        }
+                        //Parallel.For(0, n, i =>
+                        //{
+                        //    int j = 0;
+                        //    for (int t = 0; t < nk - 1; t++)
+                        //    {
+                        //        for (int k = t + 1; k < nk; k++)
+                        //        {
+                        //            ECCBase16.EiSiPoint p1 = EiSiPoint.Base16Multiplicands(Rns[i, j], G);
+                        //            ECCBase16.EiSiPoint p2 = EiSiPoint.Base16Multiplicands(ksuij[i, k], KPj[t]);
+                        //            ECCBase16.EiSiPoint p3 = EiSiPoint.Base16Multiplicands(ksuij[i, t], KPj[k]);
+                        //            ECCBase16.EiSiPoint p4 = EiSiPoint.Subtract(EiSiPoint.Addition(p1, p1), p3);
+                        //            ECCBase16.AffinePoint p5 = EiSiPoint.ToAffine(p4);
+                        //            concurrent_1.Add(string.Format("{0},{1},{2},{3}", i, j, p5.X, p5.Y));
+                        //            if (j == ns - 1) break;
+                        //            else j++;
+                        //        }
+                        //        if (j == ns - 1) break;
+                        //    }
+                        //});
+                        sw.Stop();
+
+                        WriteFile(_encrypt, string.Join(Environment.NewLine, concurrent_1), false);
+                        Clear(concurrent_1);
+                    }
+                    catch (Exception ex)
+                    {
+
+                        throw;
+                    }
+
+                }
+
+                #endregion
+
+                #region Pha 4 Trích xuất kết quả Máy chủ thực hiện
+                Point[,] AUij = new RSECC.Point[n, ns];
+
+                if (_run_phase_4)
+                {
+                    try
+                    {
+                        sw.Reset();
+
+                        sw.Start();
+                        string[] data_phase3 = ReadFileAsLine(_encrypt);
+                        Parallel.ForEach(data_phase3, line =>
+                        {
+                            if (!string.IsNullOrWhiteSpace(line))
+                            {
+                                string[] values = line.Split(',');
+                                AUij[int.Parse(values[0]), int.Parse(values[1])] = new Point(BigInteger.Parse(values[2]), BigInteger.Parse(values[3]));
+                            }
+                        });
+                        for (int j = 0; j < ns; j++)
+                        {
+                            Point Aj = Point.InfinityPoint;
+                            for (int i = 0; i < n; i++)
+                            {
+                                try
+                                {
+                                    Point tmp = Aj;
+                                    Aj = EcdsaMath.JacobianAdd(AUij[i, j], tmp, _curve_jacobian.A, _curve_jacobian.P);
+                                    concurrent_test.Add(string.Format("({0})+({1})=({2})", tmp.ToString(), EcdsaMath.FromJacobian(AUij[i, j], _curve_jacobian.P).ToString(), EcdsaMath.FromJacobian(Aj, _curve_jacobian.P).ToString()));
+                                }
+                                catch (Exception ex)
+                                {
+                                    throw;
+                                }
+                            }
+                            concurrent_1.Add(string.Format("{0},{1},{2},{3}", j, Aj.x, Aj.y, Aj.z));
+                        }
+                        //Parallel.For(0, ns, (j) =>
+                        //{
+                        //    Aj[j] = EiSiPoint.InfinityPoint;
+                        //    for (int i = 0; i < n; i++)
+                        //    {
+                        //        EiSiPoint tmp = EiSiPoint.Addition(Aj[j], AffinePoint.ToEiSiPoint(AUij[i, j]));
+                        //        Aj[j] = tmp;
+                        //        Aj[j] = Aj[j] + AffinePoint.ToEiSiPoint(AUij[i, j]);
+                        //    }
+                        //    concurrent_1.Add(string.Format("{0},{1},{2},{3}", j, Aj[j].Nx, Aj[j].Ny, Aj[j].U));
+                        //});
+                        sw.Stop();
+
+                        WriteFile(_sum_encrypt, string.Join(Environment.NewLine, concurrent_1), false);
+                        Clear(concurrent_1);
+                    }
+                    catch (Exception ex)
+                    {
+
+                        throw;
+                    }
+                    #endregion
+                }
+                if (_run_export_sum)
+                {
+                    try
+                    {
+                        Point[] Aj = new RSECC.Point[ns];
+                        sw.Reset();
+                        sw.Start();
+                        string[] data_phase4 = ReadFileAsLine(_sum_encrypt);
+                        Parallel.ForEach(data_phase4, line =>
+                        {
+                            string[] values = line.Split(',');
+                            Aj[int.Parse(values[0])] = new Point(BigInteger.Parse(values[1]), BigInteger.Parse(values[2]), BigInteger.Parse(values[3]));
+                        });
+
+                        var data_loga = BRFJacobian(Aj, _curve_jacobian, ns, max * max * n);
+                        Sim(data_loga, m);
+                        WriteFile(_get_sum_encrypt, string.Join(";", data_loga), false);
+                        sw.Stop();
+                    }
+                    catch (Exception ex)
+                    {
+                        throw;
+                    }
+
+                }
+            }
+            catch (Exception ex)
+            {
+                //MessageBox.Show(ex.StackTrace);
+            }
+            WriteFile("Log.txt", String.Join(Environment.NewLine, concurrent_test), false);
+        }
+
+
         private static string _data_folder0 = Path.Combine(Directory.GetParent(Directory.GetCurrentDirectory()).Parent.FullName, "data");
 
         private static string _input = "D:\\Test\\Input";
-        private static string _data_folder = "D:\\Test\\Output";
+        private static string _data_folder = "D:\\Test\\OutputJacobian";
         private static void WriteFile(string file_name, string content, bool append = true)
         {
             if (!string.IsNullOrWhiteSpace(file_name))

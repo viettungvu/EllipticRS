@@ -144,7 +144,8 @@ namespace FormTest
             _sw.Start();
             try
             {
-                ReSysUtils.Run();
+                //ReSysUtils.Run();
+                ReSysUtils.RunJacobian();
 
             }
             catch (Exception ex)
