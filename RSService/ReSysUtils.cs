@@ -30,23 +30,147 @@ namespace RSService
         private static readonly string _sum_encrypt = "0.5.SumEncrypt.txt";
         private static readonly string _get_sum_encrypt = "0.6.Sum.txt";
 
-        private static bool _run_phase_1 = false;
+        private static bool _run_phase_1 = true;
         private static bool _run_phase_2 = true;
         private static bool _run_phase_3 = true;
         private static bool _run_phase_4 = true;
         private static bool _run_export_sum = true;
 
         private static int max = 5;
-        public static void Run()
+        private static int n = 5;
+        private static int m = 20;
+
+
+
+
+        public static int[] BRF(ECCBase16.EiSiPoint[] Aj, ECCBase16.Curve curve, int ns, int max)
         {
+            int[] result = new int[ns];
+            ECCBase16.EiSiPoint K = ECCBase16.EiSiPoint.InfinityPoint;
+            EiSiPoint G = ECCBase16.AffinePoint.ToEiSiPoint(curve.G);
+            int count = 0;
+            for (int i = 0; i < max; i++)
+            {
+                K = K + G;
+                for (int j = 0; j < ns; j++)
+                {
+                    if (K.Ny == Aj[j].Ny && K.Nx == Aj[j].Nx && K.U == Aj[j].U)
+                    {
+                        result[j] = i;
+                        count += 1;
+                        if (count == ns - 1)
+                        {
+                            break;
+                        }
+                    }
+                }
+                if (count == ns - 1)
+                {
+                    break;
+                }
+            }
+
+            return result;
+        }
+
+        public static int[] BRFJacobian(ECCJacobian.Point[] Aj, CurveFp curve, int ns, int max)
+        {
+            int[] result = new int[ns];
+            ECCJacobian.Point K = ECCJacobian.Point.InfinityPoint;
+
+            int count = 0;
+            for (int i = 0; i < max; i++)
+            {
+                K = EcdsaMath.JacobianAdd(curve.G, K, curve.A, curve.P);
+                for (int j = 0; j < ns; j++)
+                {
+                    if (K.x == Aj[j].x && K.y == Aj[j].y && K.z == Aj[j].z)
+                    {
+                        result[j] = i;
+                        count += 1;
+                        if (count == ns - 1)
+                        {
+                            break;
+                        }
+                    }
+                }
+                if (count == ns - 1)
+                {
+                    break;
+                }
+            }
+
+            return result;
+        }
+        public static int[] BRFStandard(ECCStandard.Point[] Aj, ECCStandard.Curve curve, int ns, int max)
+        {
+            int[] result = new int[ns];
+            ECCStandard.Point K = ECCStandard.Point.InfinityPoint;
+
+            int count = 0;
+            for (int i = 0; i < max; i++)
+            {
+                K = ECCStandard.Point.Add(K, curve.G);
+                for (int j = 0; j < ns; j++)
+                {
+                    if (K.X == Aj[j].X && K.Y == Aj[j].Y)
+                    {
+                        result[j] = i + 1;
+                        count += 1;
+                        if (count == ns - 1)
+                        {
+                            break;
+                        }
+                    }
+                }
+                if (count == ns - 1)
+                {
+                    break;
+                }
+            }
+            return result;
+        }
+
+        public static void Sim(int[] sum, int m)
+        {
+            double[] R = new double[m];
+            double[,] sim = new double[m, m];
+            Parallel.For(0, m, i =>
+            {
+                if (sum[i + m] == 0)
+                {
+                    R[i] = 0;
+                }
+                else
+                {
+                    R[i] = sum[i] / sum[i + m];
+                }
+
+            });
+            ConcurrentBag<string> bag = new ConcurrentBag<string>();
+            int l = 0;
+            for (int j = 0; j < m - 1; j++)
+            {
+                for (int k = j + 1; k < m; k++)
+                {
+                    sim[j, k] = sum[3 * m + l] / (Math.Sqrt(sum[2 * m + j]) * Math.Sqrt(sum[2 * m + k]));
+                    bag.Add(String.Format("Sim({0},{1})={2}", j, k, sim[j, k]));
+                    l++;
+                }
+            }
+            WriteFile("Sim.txt", String.Join(Environment.NewLine, bag), false);
+        }
+
+
+        public static void RunEiSi(string folder = "")
+        {
+            _data_folder = folder;
             ConcurrentBag<string> concurrent_1 = new ConcurrentBag<string>();
             ConcurrentBag<string> concurrent_2 = new ConcurrentBag<string>();
 
             ConcurrentBag<string> concurrent_test = new ConcurrentBag<string>();
             try
             {
-                int n = 5;
-                int m = 20;
                 Stopwatch sw = Stopwatch.StartNew();
 
                 int ns = m * (m + 5) / 2;
@@ -104,19 +228,26 @@ namespace RSService
                 if (_run_phase_1)
                 {
                     // UpdateState?.Invoke(null, new LogEventArgs { message = string.Format("[{0}] Đang chuẩn bị các khóa", DateTime.Now.ToLongTimeString()) });
-
-                    sw.Start();
-                    for (int i = 0; i < n; i++)
+                    try
                     {
-                        for (int j = 0; j < nk; j++)
+                        sw.Start();
+                        for (int i = 0; i < n; i++)
                         {
-                            BigInteger secret = ECCBase16.Numerics.RandomBetween(1, _curve.N - 1);
-                            ECCBase16.EiSiPoint pub = EiSiPoint.Base16Multiplicands(secret, G);
-                            concurrent_1.Add(string.Format("{0},{1},{2}", i, j, secret));
-                            AffinePoint pub_in_affine = EiSiPoint.ToAffine(pub);
-                            concurrent_2.Add(string.Format("{0},{1},{2},{3}", i, j, pub_in_affine.X, pub_in_affine.Y));
+                            for (int j = 0; j < nk; j++)
+                            {
+                                BigInteger secret = ECCBase16.Numerics.RandomBetween(1, _curve.N - 1);
+                                ECCBase16.EiSiPoint pub = EiSiPoint.Base16Multiplicands(secret, G);
+                                concurrent_1.Add(string.Format("{0},{1},{2}", i, j, secret));
+                                AffinePoint pub_in_affine = EiSiPoint.ToAffine(pub);
+                                concurrent_2.Add(string.Format("{0},{1},{2},{3}", i, j, pub_in_affine.X, pub_in_affine.Y));
+                            }
                         }
                     }
+                    catch (Exception ex)
+                    {
+                        throw;
+                    }
+
                     //Parallel.For(0, n, i =>
                     //{
                     //    Parallel.For(0, nk, j =>
@@ -143,7 +274,8 @@ namespace RSService
                 {
                     try
                     {
-                        string[] key_user_pub = ReadFileAsLine(_key_user_pub);
+                        //string[] key_user_pub = ReadFileAsLine(_key_user_pub);
+                        string[] key_user_pub = ReadFileInput(_key_user_pub);
                         Parallel.ForEach(key_user_pub, line =>
                         {
                             string[] values = line.Split(',');
@@ -159,9 +291,9 @@ namespace RSService
                             {
                                 ECCBase16.AffinePoint p1 = EiSiPoint.ToAffine(KPj);
                                 ECCBase16.AffinePoint p2 = EiSiPoint.ToAffine(KPUij[i, j]);
-                                KPj += KPUij[i, j];
+                                KPj = EiSiPoint.Addition(KPj, KPUij[i, j]);
                                 ECCBase16.AffinePoint px = EiSiPoint.ToAffine(KPj);
-                                concurrent_test.Add(string.Format("({0},{1}) + ({2},{3})=({4},{5})", p1.X, p1.Y, p2.X, p2.Y, px.X, px.Y));
+                                concurrent_test.Add(string.Format("({0}) + ({1})=({2})", p1.ToString(), p2.ToString(), px.ToString()));
                             }
                             ECCBase16.AffinePoint p = EiSiPoint.ToAffine(KPj);
                             concurrent_1.Add(string.Format("{0},{1},{2}", j, p.X, p.Y));
@@ -197,10 +329,8 @@ namespace RSService
                 {
                     try
                     {
-                        n = 5;
                         EiSiPoint[] KPj = new EiSiPoint[nk];
                         string[] shared_key = ReadFileAsLine(_key_common);
-
                         Parallel.ForEach(shared_key, line =>
                         {
                             if (!string.IsNullOrWhiteSpace(line))
@@ -234,23 +364,16 @@ namespace RSService
                                 {
                                     if (!dic_repeated.TryGetValue(Rns[i, j], out EiSiPoint p1))
                                     {
-                                        p1 = Rns[i, j] * G;
+                                        p1 = EiSiPoint.Multiply(Rns[i, j], G);
                                         dic_repeated.Add(Rns[i, j], p1);
-                                        concurrent_test.Add(string.Format("{0}*({1})=({2})", Rns[i, j], AffinePoint.ToString(_curve.G), AffinePoint.ToString(EiSiPoint.ToAffine(p1))));
+                                        concurrent_test.Add(string.Format("{0}*({1})=({2})", Rns[i, j], _curve.G.ToString(), EiSiPoint.ToAffine(p1).ToString()));
                                     }
-                                    ECCBase16.EiSiPoint p2 = ksuij[i, k] * KPj[t];
-                                    ECCBase16.EiSiPoint p3 = ksuij[i, t] * KPj[k];
-                                    ECCBase16.EiSiPoint p4 = p1 + p2 - p3;
-                                    if (p4.IsInfinity() || p4.U == 0)
-                                    {
-                                        concurrent_test.Add(string.Format("({0})+({1})-({2})=({3})", AffinePoint.ToString(EiSiPoint.ToAffine(p1)), AffinePoint.ToString(EiSiPoint.ToAffine(p2)), AffinePoint.ToString(EiSiPoint.ToAffine(p3)), AffinePoint.ToString(AffinePoint.InfinityPoint)));
-                                        concurrent_1.Add(string.Format("{0},{1},{2},{3}", i, j, p4.Nx, p4.Ny));
-                                    }
-                                    else
-                                    {
-                                        ECCBase16.AffinePoint p5 = EiSiPoint.ToAffine(p4);
-                                        concurrent_1.Add(string.Format("{0},{1},{2},{3}", i, j, p5.X, p5.Y));
-                                    }
+                                    ECCBase16.EiSiPoint p2 = EiSiPoint.Multiply(ksuij[i, k], KPj[t]);
+                                    ECCBase16.EiSiPoint p3 = EiSiPoint.Multiply(ksuij[i, t], KPj[k]);
+                                    ECCBase16.EiSiPoint p4 = EiSiPoint.Subtract(EiSiPoint.Addition(p1, p2), p3);
+
+                                    ECCBase16.AffinePoint p5 = EiSiPoint.ToAffine(p4);
+                                    concurrent_1.Add(string.Format("{0},{1},{2},{3}", i, j, p5.X, p5.Y));
                                     if (j == ns - 1) break;
                                     else j++;
                                 }
@@ -315,15 +438,6 @@ namespace RSService
                             EiSiPoint Aj = EiSiPoint.InfinityPoint;
                             for (int i = 0; i < n; i++)
                             {
-                                if (i == 4 && j == 130)
-                                {
-                                    AffinePoint tmp = EiSiPoint.ToAffine(Aj);
-                                    concurrent_test.Add(string.Format("({0})+({1})=({2})", AffinePoint.ToString(tmp), AffinePoint.ToString(AUij[i, j]), AffinePoint.ToString(AffinePoint.InfinityPoint)));
-                                    EiSiPoint Aj_temp = EiSiPoint.Addition(Aj, AffinePoint.ToEiSiPoint(AUij[i, j]));
-                                    Aj = Aj_temp;
-                                    AffinePoint tmp2 = EiSiPoint.ToAffine(Aj);
-                                    concurrent_test.Add(string.Format("({0})+({1})=({2})", AffinePoint.ToString(tmp2), AffinePoint.ToString(AUij[i, j]), AffinePoint.ToString(EiSiPoint.ToAffine(Aj))));
-                                }
                                 try
                                 {
                                     //AffinePoint tmp = EiSiPoint.ToAffine(Aj);
@@ -335,7 +449,7 @@ namespace RSService
 
 
                                     EiSiPoint tmp = Aj;
-                                    Aj = AffinePoint.ToEiSiPoint(AUij[i, j]) + tmp;
+                                    Aj = EiSiPoint.Addition(AffinePoint.ToEiSiPoint(AUij[i, j]), tmp);
                                     concurrent_test.Add(string.Format("({0})+({1})=({2})", tmp.ToString(), AffinePoint.ToEiSiPoint(AUij[i, j]).ToString(), Aj.ToString()));
                                 }
                                 catch (Exception ex)
@@ -404,137 +518,15 @@ namespace RSService
 
 
         }
-        public static int[] BRF(ECCBase16.EiSiPoint[] Aj, ECCBase16.Curve curve, int ns, int max)
+        public static void RunJacobian(string folder = "")
         {
-            int[] result = new int[ns];
-            ECCBase16.EiSiPoint K = ECCBase16.EiSiPoint.InfinityPoint;
-            EiSiPoint G = ECCBase16.AffinePoint.ToEiSiPoint(curve.G);
-            int count = 0;
-            for (int i = 0; i < max; i++)
-            {
-                K = i * G;
-                for (int j = 0; j < ns; j++)
-                {
-                    if (K.Ny == Aj[j].Ny && K.Nx == Aj[j].Nx && K.U == Aj[j].U /*K == Aj[j]*/)
-                    {
-                        result[j] = i;
-                        count += 1;
-                        if (count == ns - 1)
-                        {
-                            break;
-                        }
-                    }
-                }
-                if (count == ns - 1)
-                {
-                    break;
-                }
-            }
-
-            return result;
-        }
-
-        public static int[] BRFJacobian(ECCJacobian.Point[] Aj, CurveFp curve, int ns, int max)
-        {
-            int[] result = new int[ns];
-            ECCJacobian.Point K = ECCJacobian.Point.InfinityPoint;
-
-            int count = 0;
-            for (int i = 0; i < max; i++)
-            {
-                K = EcdsaMath.JacobianMultiply(curve.G, i, curve.N, curve.A, curve.P);
-                for (int j = 0; j < ns; j++)
-                {
-                    if (K.x == Aj[j].x && K.y == Aj[j].y)
-                    {
-                        result[j] = i;
-                        count += 1;
-                        if (count == ns - 1)
-                        {
-                            break;
-                        }
-                    }
-                }
-                if (count == ns - 1)
-                {
-                    break;
-                }
-            }
-
-            return result;
-        }
-        public static int[] BRFStandard(ECCStandard.Point[] Aj, ECCStandard.Curve curve, int ns, int max)
-        {
-            int[] result = new int[ns];
-            ECCStandard.Point K = ECCStandard.Point.InfinityPoint;
-
-            int count = 0;
-            for (int i = 0; i < max; i++)
-            {
-                K = ECCStandard.Point.Add(K, Aj[i]);
-                for (int j = 0; j < ns; j++)
-                {
-                    if (K.X == Aj[j].X && K.Y == Aj[j].Y)
-                    {
-                        result[j] = i;
-                        count += 1;
-                        if (count == ns - 1)
-                        {
-                            break;
-                        }
-                    }
-                }
-                if (count == ns - 1)
-                {
-                    break;
-                }
-            }
-
-            return result;
-        }
-
-        public static void Sim(int[] sum, int m)
-        {
-            double[] R = new double[m];
-            double[,] sim = new double[m, m];
-            Parallel.For(0, m, i =>
-            {
-                if (sum[i + m] == 0)
-                {
-                    R[i] = 0;
-                }
-                else
-                {
-                    R[i] = sum[i] / sum[i + m];
-                }
-
-            });
-            ConcurrentBag<string> bag = new ConcurrentBag<string>();
-            int l = 0;
-            for (int j = 0; j < m - 1; j++)
-            {
-                for (int k = j + 1; k < m; k++)
-                {
-                    sim[j, k] = sum[3 * m + l] / (Math.Sqrt(sum[2 * m + j]) * Math.Sqrt(sum[2 * m + k]));
-                    bag.Add(String.Format("Sim({0},{1})={2}", j, k, sim[j, k]));
-                    l++;
-                }
-            }
-            WriteFile("Sim.txt", String.Join(Environment.NewLine, bag), false);
-        }
-
-
-
-        public static void RunJacobian()
-        {
+            _data_folder = folder;
             ConcurrentBag<string> concurrent_1 = new ConcurrentBag<string>();
             ConcurrentBag<string> concurrent_2 = new ConcurrentBag<string>();
 
             ConcurrentBag<string> concurrent_test = new ConcurrentBag<string>();
             try
             {
-                int n = 5;
-                int m = 20;
                 Stopwatch sw = Stopwatch.StartNew();
 
                 int ns = m * (m + 5) / 2;
@@ -871,16 +863,15 @@ namespace RSService
         }
 
 
-        public static void RunStandard()
+        public static void RunStandard(string folder = "")
         {
+            _data_folder = folder;
             ConcurrentBag<string> concurrent_1 = new ConcurrentBag<string>();
             ConcurrentBag<string> concurrent_2 = new ConcurrentBag<string>();
 
             ConcurrentBag<string> concurrent_test = new ConcurrentBag<string>();
             try
             {
-                int n = 5;
-                int m = 20;
                 Stopwatch sw = Stopwatch.StartNew();
 
                 int ns = m * (m + 5) / 2;
@@ -944,6 +935,7 @@ namespace RSService
                             Cryptography.KeyPair key_pair = Cryptography.GetKeyPair(_curve_standard);
                             concurrent_1.Add(string.Format("{0},{1},{2}", i, j, key_pair.PrivateKey));
                             concurrent_2.Add(string.Format("{0},{1},{2},{3}", i, j, key_pair.PublicKey.X, key_pair.PublicKey.Y));
+                            concurrent_test.Add(string.Format("{0}*({1})=({2})", key_pair.PrivateKey, _curve_standard.G.ToString(), key_pair.PublicKey.ToString()));
                         }
                     }
                     //Parallel.For(0, n, i =>
@@ -996,11 +988,11 @@ namespace RSService
                             KPj = ECCStandard.Point.Add(KPUij[i, j], tmp);
                             if (ECCStandard.Point.IsInfinityPoint(tmp))
                             {
-                                concurrent_test.Add(string.Format("({0},{1}) + ({2},{3})=({4},{5})", 0, 0, KPUij[i, j].X, KPUij[i, j].Y, KPj.X, KPj.Y));
+                                concurrent_test.Add(string.Format("({0},{1}) + ({2})=({3})", 0, 0, KPUij[i, j].ToString(), KPj.ToString()));
                             }
                             else
                             {
-                                concurrent_test.Add(string.Format("({0},{1}) + ({2},{3})=({4},{5})", tmp.X, tmp.Y, KPUij[i, j].X, KPUij[i, j].Y, KPj.X, KPUij[i, j].Y));
+                                concurrent_test.Add(string.Format("({0}) + ({1})=({2})", tmp.ToString(), KPUij[i, j].ToString(), KPj.ToString()));
                             }
                         }
                         concurrent_1.Add(string.Format("{0},{1},{2}", j, KPj.X, KPj.Y));
@@ -1029,7 +1021,6 @@ namespace RSService
                 {
                     try
                     {
-                        n = 5;
                         ECCStandard.Point[] KPj = new ECCStandard.Point[nk];
                         string[] shared_key = ReadFileAsLine(_key_common);
 
@@ -1063,14 +1054,11 @@ namespace RSService
                             {
                                 for (int k = t + 1; k < nk; k++)
                                 {
-
                                     ECCStandard.Point p1 = ECCStandard.Point.Multiply(Rns[i, j], _curve_standard.G);
-                                    concurrent_test.Add(string.Format("{0}*({1})=({2})", Rns[i, j], _curve_standard.G.ToString(), p1.ToString()));
-
                                     ECCStandard.Point p2 = ECCStandard.Point.Multiply(ksuij[i, k], KPj[t]);
                                     ECCStandard.Point p3 = ECCStandard.Point.Multiply(ksuij[i, t], KPj[k]);
                                     ECCStandard.Point p4 = ECCStandard.Point.Add(ECCStandard.Point.Add(p1, p2), ECCStandard.Point.Negate(p3));
-                                    concurrent_test.Add(string.Format("({0})+({1})-({2})=({3})", p1.ToString(), p2.ToString(), p3.ToString(), p4.ToString()));
+                                    concurrent_test.Add(string.Format("({0})+({1})-({2})=({3})", p1.ToString(), p2.ToString(), ECCStandard.Point.Negate(p3).ToString(), p4.ToString()));
                                     concurrent_1.Add(string.Format("{0},{1},{2},{3}", i, j, p4.X, p4.Y));
                                     if (j == ns - 1) break;
                                     else j++;

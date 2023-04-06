@@ -23,7 +23,7 @@ namespace ECCBase16
         public static AffinePoint InfinityPoint => new AffinePoint(0, 0, null);
         public static bool IsInfinityPoint(AffinePoint point) => point == InfinityPoint;
 
-        public static string ToString(AffinePoint p)
+        public string ToString(AffinePoint p)
         {
             return string.Format("{0},{1}", p.X, p.Y);
         }
@@ -407,7 +407,7 @@ namespace ECCBase16
 
         public static EiSiPoint operator *(BigInteger scalar, EiSiPoint p2)
         {
-            return Multiply(scalar, p2);
+            return Base16Multiplicands(scalar, p2);
         }
 
         public static bool operator ==(EiSiPoint point1, EiSiPoint point2)
@@ -422,7 +422,7 @@ namespace ECCBase16
             }
             else
             {
-                return point1.Nx == point2.Nx && point1.Ny == point2.Ny && point1.U==point2.U;
+                return point1.Nx == point2.Nx && point1.Ny == point2.Ny && point1.U == point2.U;
             }
         }
         public static bool operator !=(EiSiPoint point1, EiSiPoint point2)
@@ -455,7 +455,6 @@ namespace ECCBase16
 
         public static EiSiPoint Multiply(BigInteger scalar, EiSiPoint point)
         {
-
             EiSiPoint result = InfinityPoint;
             if (scalar == 0 || point.IsInfinity())
             {
@@ -483,7 +482,7 @@ namespace ECCBase16
 
         public static EiSiPoint Base16Multiplicands(BigInteger scalar, EiSiPoint point)
         {
-            if (scalar < 16)
+            if (scalar <= 16)
             {
                 return Multiply(scalar, point);
             }
