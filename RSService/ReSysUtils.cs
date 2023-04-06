@@ -238,8 +238,16 @@ namespace RSService
                                 BigInteger secret = ECCBase16.Numerics.RandomBetween(1, _curve.N - 1);
                                 ECCBase16.EiSiPoint pub = EiSiPoint.Base16Multiplicands(secret, G);
                                 concurrent_1.Add(string.Format("{0},{1},{2}", i, j, secret));
-                                AffinePoint pub_in_affine = EiSiPoint.ToAffine(pub);
-                                concurrent_2.Add(string.Format("{0},{1},{2},{3}", i, j, pub_in_affine.X, pub_in_affine.Y));
+                                if (pub != null)
+                                {
+
+                                //AffinePoint pub_in_affine = EiSiPoint.ToAffine(pub);
+                                //concurrent_2.Add(string.Format("{0},{1},{2},{3}", i, j, pub_in_affine.X, pub_in_affine.Y));
+                                }
+                                else
+                                {
+
+                                }
                             }
                         }
                     }
@@ -315,7 +323,6 @@ namespace RSService
                     }
                     catch (Exception ex)
                     {
-
                         throw;
                     }
 
