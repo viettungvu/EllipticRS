@@ -43,7 +43,7 @@ namespace RSService
 
 
 
-        public static int[] BRF(ECCBase16.EiSiPoint[] Aj, ECCBase16.Curve curve, int ns, int max)
+        public static int[] BRFEiSi(ECCBase16.EiSiPoint[] Aj, ECCBase16.Curve curve, int ns, int max)
         {
             int[] result = new int[ns];
             ECCBase16.EiSiPoint K = ECCBase16.EiSiPoint.InfinityPoint;
@@ -51,10 +51,10 @@ namespace RSService
             int count = 0;
             for (int i = 0; i < max; i++)
             {
-                K = K + G;
+                K = EiSiPoint.Addition(K, G);
                 for (int j = 0; j < ns; j++)
                 {
-                    if (K.Ny == Aj[j].Ny && K.Nx == Aj[j].Nx && K.U == Aj[j].U)
+                    if (K.Ny == Aj[j].Ny && K.Nx == Aj[j].Nx)
                     {
                         result[j] = i;
                         count += 1;
@@ -241,8 +241,8 @@ namespace RSService
                                 if (pub != null)
                                 {
 
-                                //AffinePoint pub_in_affine = EiSiPoint.ToAffine(pub);
-                                //concurrent_2.Add(string.Format("{0},{1},{2},{3}", i, j, pub_in_affine.X, pub_in_affine.Y));
+                                    AffinePoint pub_in_affine = EiSiPoint.ToAffine(pub);
+                                    concurrent_2.Add(string.Format("{0},{1},{2},{3}", i, j, pub_in_affine.X, pub_in_affine.Y));
                                 }
                                 else
                                 {
@@ -347,7 +347,7 @@ namespace RSService
                             }
                         });
 
-                        string[] key_user_prv = ReadFileAsLine(_key_user_prv);
+                        string[] key_user_prv = ReadFileInput(_key_user_prv);
                         Parallel.ForEach(key_user_prv, line =>
                         {
                             if (!string.IsNullOrWhiteSpace(line))
@@ -447,14 +447,6 @@ namespace RSService
                             {
                                 try
                                 {
-                                    //AffinePoint tmp = EiSiPoint.ToAffine(Aj);
-                                    //concurrent_test.Add(string.Format("({0})+({1})=({2})", AffinePoint.ToString(tmp), AffinePoint.ToString(AUij[i, j]), AffinePoint.ToString(AffinePoint.InfinityPoint)));
-                                    //EiSiPoint Aj_temp = EiSiPoint.Addition(Aj, AffinePoint.ToEiSiPoint(AUij[i, j]));
-                                    //Aj = Aj_temp;
-                                    //AffinePoint tmp2 = EiSiPoint.ToAffine(Aj);
-                                    //concurrent_test.Add(string.Format("({0})+({1})=({2})", AffinePoint.ToString(tmp2), AffinePoint.ToString(AUij[i, j]), AffinePoint.ToString(EiSiPoint.ToAffine(Aj))));
-
-
                                     EiSiPoint tmp = Aj;
                                     Aj = EiSiPoint.Addition(AffinePoint.ToEiSiPoint(AUij[i, j]), tmp);
                                     concurrent_test.Add(string.Format("({0})+({1})=({2})", tmp.ToString(), AffinePoint.ToEiSiPoint(AUij[i, j]).ToString(), Aj.ToString()));
@@ -503,7 +495,7 @@ namespace RSService
                             Aj[int.Parse(values[0])] = new EiSiPoint(BigInteger.Parse(values[1]), BigInteger.Parse(values[2]), BigInteger.Parse(values[3]), _curve);
                         });
 
-                        var data_loga = BRF(Aj, _curve, ns, max * max * n);
+                        var data_loga = BRFEiSi(Aj, _curve, ns, max * max * n);
                         Sim(data_loga, m);
                         WriteFile(_get_sum_encrypt, string.Join(";", data_loga), false);
                         sw.Stop();

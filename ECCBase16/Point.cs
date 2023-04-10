@@ -297,10 +297,10 @@ namespace ECCBase16
             Curve = curve;
         }
 
-        public static EiSiPoint InfinityPoint => new EiSiPoint(0, 0, 1, null);
+        public static EiSiPoint InfinityPoint => new EiSiPoint(1, 1, 0, null);
         public bool IsInfinity()
         {
-            return Nx.IsZero && Ny.IsZero;
+            return U.IsZero;
         }
         public override string ToString()
         {
@@ -311,7 +311,7 @@ namespace ECCBase16
             EiSiPoint result;
             if (point.IsInfinity())
             {
-                _ = InfinityPoint;
+                return EiSiPoint.InfinityPoint;
             }
             BigInteger a = point.Curve.A;
             BigInteger p = point.Curve.P;
@@ -384,7 +384,7 @@ namespace ECCBase16
         public static EiSiPoint Subtract(EiSiPoint point1, EiSiPoint point2)
         {
             EiSiPoint negate_p2 = Negate(point2);
-            return Addition(point1, negate_p2);
+            return Addition(point1,negate_p2);
         }
         public static EiSiPoint Negate(EiSiPoint point)
         {

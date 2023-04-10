@@ -12,7 +12,7 @@ namespace FormTest
 {
     public partial class Form1 : Form
     {
-        private static readonly ECCBase16.Curve _curve = new ECCBase16.Curve(ECCBase16.CurveName.test);
+        private static readonly ECCBase16.Curve _curve = new ECCBase16.Curve(ECCBase16.CurveName.secp160k1);
         private static Stopwatch _sw = new Stopwatch();
 
         public Form1()
@@ -104,7 +104,9 @@ namespace FormTest
             ECCBase16.EiSiPoint eisiPoint3 = ECCBase16.EiSiPoint.Addition(eisiPoint2, eisiPoint1);
             // ECCBase16.EiSiPoint eisiPoint4 = ECCBase16.EiSiPoint.Multiply(2, eisiPoint3);
 
-            ECCBase16.AffinePoint point_convert_back = EiSiPoint.ToAffine(eisiPoint3);
+
+            EiSiPoint pointx = new EiSiPoint(BigInteger.Parse("456452717695284184150517795986979597953123497273"), BigInteger.Parse("485397933664854592076469554075518937538071042010"), BigInteger.Parse("416516082459139954592908659934102757974038441832"), _curve);
+            ECCBase16.AffinePoint point_convert_back = EiSiPoint.ToAffine(pointx);
             _sw.Stop();
             setText(point_convert_back.X, point_convert_back.Y);
             setTime();
@@ -131,10 +133,27 @@ namespace FormTest
         {
             _sw.Reset();
             _sw.Start();
-            ECCJacobian.Point point = new ECCJacobian.Point(5, 1);
-            ECCJacobian.Point p = EcdsaMath.Multiply(point, BigInteger.Parse(_test), 19, 2, 17);
+
+            //2P+8P-7P=3P=(10,6);
+            //ECCJacobian.CurveFp curve = Curves.getCurveByType(CurveType.sec160k1);
+            //ECCJacobian.Point G = new ECCJacobian.Point(5, 1);
+            //ECCJacobian.Point _2G = EcdsaMath.JacobianMultiply(G, 2, 19, 2, 17);
+            //ECCJacobian.Point _8G = EcdsaMath.JacobianMultiply(G, 8, 19, 2, 17);
+            //ECCJacobian.Point _7G = EcdsaMath.JacobianMultiply(G, 7, 19, 2, 17);
+
+            //ECCJacobian.Point p = EcdsaMath.Sub(EcdsaMath.Add(_2G, _8G, 2, 17), _7G, 2, 17);
+            //setText(p.x, p.y);
+
+            EiSiPoint G = new EiSiPoint(5, 1, 1, _curve);
+            EiSiPoint _2G = EiSiPoint.Multiply(2, G);
+            EiSiPoint _8G = EiSiPoint.Multiply(8, G);
+            EiSiPoint _7G = EiSiPoint.Multiply(7, G);
+
+            AffinePoint p = EiSiPoint.ToAffine(EiSiPoint.Subtract(EiSiPoint.Addition(_2G, _8G), _7G));
+            //AffinePoint p =EiSiPoint.ToAffine(EiSiPoint.Addition(_2G, _8G));
+            //AffinePoint p =EiSiPoint.ToAffine(EiSiPoint.Subtract(_8G, _7G));
             _sw.Stop();
-            setText(p.x, p.y);
+            setText(p.X, p.Y);
             setTime();
         }
 

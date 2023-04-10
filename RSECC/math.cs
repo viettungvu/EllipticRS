@@ -38,7 +38,7 @@ namespace ECCJacobian
 
         public static Point Sub(Point p, Point q, BigInteger A, BigInteger P)
         {
-            Point intQ = new Point(q.x, Utils.Integer.modulo(P - q.y, P));
+            Point intQ = new Point(q.x, Utils.Integer.modulo(P - q.y, P), q.z);
             return FromJacobian(JacobianAdd(ToJacobian(p), ToJacobian(intQ), A, P), P);
         }
 
@@ -111,7 +111,7 @@ namespace ECCJacobian
 
         public static Point JacobianSub(Point p, Point q, BigInteger A, BigInteger P)
         {
-            Point negative = new Point(q.x, Utils.Integer.modulo(-q.y, P), q.z);
+            Point negative = new Point(q.x, Utils.Integer.modulo(P - q.y, P), q.z);
             return JacobianAdd(p, negative, A, P);
         }
         public static Point JacobianDouble(Point p, BigInteger A, BigInteger P)
