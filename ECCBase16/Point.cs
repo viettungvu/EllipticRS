@@ -266,19 +266,14 @@ namespace ECCBase16
             return AffinePoint.InfinityPoint;
         }
 
-        public static AffinePoint SubP2P(AffinePoint point1, AffinePoint point2)
+        public static bool operator ==(AffinePoint p1, AffinePoint p2)
         {
-            return AffinePoint.InfinityPoint;
+            return p1.X == p2.X && p1.Y == p2.Y;
         }
 
-        public static AffinePoint RemiFunction(BigInteger k, AffinePoint point)
+        public static bool operator !=(AffinePoint p1, AffinePoint p2)
         {
-            return AffinePoint.InfinityPoint;
-        }
-
-        public static EiSiPoint NpFunc(AffinePoint point)
-        {
-            return new EiSiPoint(point.X, point.Y, 1, point.Curve);
+            return p1.X != p2.X || p1.Y != p2.Y;
         }
     }
 
@@ -384,7 +379,7 @@ namespace ECCBase16
         public static EiSiPoint Subtract(EiSiPoint point1, EiSiPoint point2)
         {
             EiSiPoint negate_p2 = Negate(point2);
-            return Addition(point1,negate_p2);
+            return Addition(point1, negate_p2);
         }
         public static EiSiPoint Negate(EiSiPoint point)
         {
