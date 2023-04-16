@@ -165,7 +165,7 @@ namespace FormTest
             {
                 ReSysUtils.RunEiSi("D:\\Test\\OutputEisiFull");
                 //ReSysUtils.RunJacobian("D:\\Test\\OutputJacobian");
-                ReSysUtils.RunStandard("D:\\Test\\OutputStandard");
+                //ReSysUtils.RunStandard("D:\\Test\\OutputStandard");
             }
             catch (Exception ex)
             {
@@ -237,7 +237,7 @@ namespace FormTest
         private void button12_Click(object sender, EventArgs e)
         {
             int n = 5;
-            int m = 10;
+            int m =15;
             int max = 5;
             Random rd = new Random();
             ConcurrentBag<string> bag = new ConcurrentBag<string>();

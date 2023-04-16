@@ -42,22 +42,22 @@ namespace RSService
 
 
         private static int n = 5;
-        private static int m = 10;
+        private static int m = 15;
 
 
         public static int[] BRFStandard(ECCBase16.AffinePoint[] Aj, ECCBase16.Curve curve, int ns, int max)
         {
             int[] result = new int[ns];
 
-            ECCBase16.AffinePoint K = ECCBase16.AffinePoint.InfinityPoint;
+            
 
+            Dictionary<int, AffinePoint> dic = new Dictionary<int, AffinePoint>();
 
-            //Dictionary<int, AffinePoint> dic = new Dictionary<int, AffinePoint>();
             //for (int j = 0; j < ns; j++)
             //{
             //    for (int i = 0; i < max; i++)
             //    {
-            //        if(!dic.TryGetValue(i, out AffinePoint K))
+            //        if (!dic.TryGetValue(i, out K))
             //        {
             //            K = ECCBase16.AffinePoint.Multiply(i, curve.G);
             //            dic.Add(i, K);
@@ -71,7 +71,8 @@ namespace RSService
 
             for (int i = 0; i < max; i++)
             {
-                K = ECCBase16.AffinePoint.Multiply(i + 1, curve.G);
+                ECCBase16.AffinePoint K = ECCBase16.AffinePoint.InfinityPoint;
+                K = ECCBase16.AffinePoint.Multiply(i, curve.G);
                 for (int j = 0; j < ns; j++)
                 {
                     if (K.X == Aj[j].X && K.Y == Aj[j].Y)
@@ -184,7 +185,7 @@ namespace RSService
             {
                 for (int k = j + 1; k < m; k++)
                 {
-                    sim[j, k] = sum[3 * m + l] / (Math.Sqrt(sum[2 * m + j]) * Math.Sqrt(sum[2 * m + k]));
+                    sim[j, k] =sum[3 * m + l] / (Math.Sqrt(sum[2 * m + j]) * Math.Sqrt(sum[2 * m + k]));
                     bag.Add(String.Format("Sim({0},{1})={2}", j, k, sim[j, k]));
                     l++;
                 }
@@ -195,7 +196,6 @@ namespace RSService
 
 
         }
-
 
         public static void RunEiSi(string folder = "")
         {
@@ -263,7 +263,6 @@ namespace RSService
                 #region Pha 1 Chuẩn bị các khóa Những người dùng UI thực hiện
                 if (_run_phase_1)
                 {
-                    // UpdateState?.Invoke(null, new LogEventArgs { message = string.Format("[{0}] Đang chuẩn bị các khóa", DateTime.Now.ToLongTimeString()) });
                     try
                     {
                         sw.Start();
@@ -319,35 +318,35 @@ namespace RSService
 
                         sw.Reset();
                         sw.Start();
-                        //for (int j = 0; j < nk; j++)
-                        //{
-                        //    EiSiPoint KPj = EiSiPoint.InfinityPoint;
-                        //    for (int i = 0; i < n; i++)
-                        //    {
-                        //        ECCBase16.AffinePoint p1 = EiSiPoint.ToAffine(KPj);
-                        //        ECCBase16.AffinePoint p2 = EiSiPoint.ToAffine(KPUij[i, j]);
-                        //        KPj = EiSiPoint.Addition(KPj, KPUij[i, j]);
-                        //        ECCBase16.AffinePoint px = EiSiPoint.ToAffine(KPj);
-                        //        concurrent_test.Addition(string.Format("({0}) + ({1})=({2})", p1.ToString(), p2.ToString(), px.ToString()));
-                        //    }
-                        //    ECCBase16.AffinePoint p = EiSiPoint.ToAffine(KPj);
-                        //    concurrent_1.Addition(string.Format("{0},{1},{2}", j, p.X, p.Y));
-                        //}
-                        Parallel.For(0, nk, j =>
+                        for (int j = 0; j < nk; j++)
                         {
                             EiSiPoint KPj = EiSiPoint.InfinityPoint;
                             for (int i = 0; i < n; i++)
                             {
                                 //ECCBase16.AffinePoint p1 = EiSiPoint.ToAffine(KPj);
                                 //ECCBase16.AffinePoint p2 = EiSiPoint.ToAffine(KPUij[i, j]);
-                                EiSiPoint tmp = KPj;
-                                KPj = EiSiPoint.Addition(tmp, KPUij[i, j]);
-                                //ECCBase16.AffinePoint px = EiSiPoint.ToAffine(KPj);
-                                //concurrent_test.Addition(string.Format("({0}) + ({1})=({2})", p1.ToString(), p2.ToString(), px.ToString()));
+                                KPj = EiSiPoint.Addition(KPj, KPUij[i, j]);
+                                ECCBase16.AffinePoint px = EiSiPoint.ToAffine(KPj);
+                                //concurrent_test.Add(string.Format("({0}) + ({1})=({2})", p1.ToString(), p2.ToString(), px.ToString()));
                             }
                             ECCBase16.AffinePoint p = EiSiPoint.ToAffine(KPj);
                             concurrent_1.Add(string.Format("{0},{1},{2}", j, p.X, p.Y));
-                        });
+                        }
+                        //Parallel.For(0, nk, j =>
+                        //{
+                        //    EiSiPoint KPj = EiSiPoint.InfinityPoint;
+                        //    for (int i = 0; i < n; i++)
+                        //    {
+                        //        //ECCBase16.AffinePoint p1 = EiSiPoint.ToAffine(KPj);
+                        //        //ECCBase16.AffinePoint p2 = EiSiPoint.ToAffine(KPUij[i, j]);
+                        //        EiSiPoint tmp = KPj;
+                        //        KPj = EiSiPoint.Addition(tmp, KPUij[i, j]);
+                        //        //ECCBase16.AffinePoint px = EiSiPoint.ToAffine(KPj);
+                        //        //concurrent_test.Addition(string.Format("({0}) + ({1})=({2})", p1.ToString(), p2.ToString(), px.ToString()));
+                        //    }
+                        //    ECCBase16.AffinePoint p = EiSiPoint.ToAffine(KPj);
+                        //    concurrent_1.Add(string.Format("{0},{1},{2}", j, p.X, p.Y));
+                        //});
                         //sw.Stop();
 
                         WriteFile(_key_common, string.Join(Environment.NewLine, concurrent_1), false);
@@ -407,7 +406,7 @@ namespace RSService
                                     ECCBase16.EiSiPoint p2 = EiSiPoint.Multiply(ksuij[i, k], KPj[t]);
                                     ECCBase16.EiSiPoint p3 = EiSiPoint.Multiply(ksuij[i, t], KPj[k]);
 
-
+                                    var p1_aff = EiSiPoint.ToAffine(p1);
                                     var p2_aff = EiSiPoint.ToAffine(p2);
                                     var p3_aff = EiSiPoint.ToAffine(p3);
                                     var tmp = EiSiPoint.ToAffine(EiSiPoint.Addition(p1, p2));
