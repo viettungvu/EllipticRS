@@ -99,14 +99,14 @@ namespace FormTest
             //ECCBase16.EiSiPoint eisiPoint = ECCBase16.EiSiPoint.Multiply(BigInteger.Parse(_test), ECCBase16.AffinePoint.ToEiSiPoint(point));
             //ECCBase16.AffinePoint point_convert_back = EiSiPoint.ToAffine(eisiPoint);
 
-            ECCBase16.EiSiPoint eisiPoint1 = new EiSiPoint(8, 11, 14, _curve);
-            ECCBase16.EiSiPoint eisiPoint2 = new EiSiPoint(6, 14, 1, _curve);
+            ECCBase16.EiSiPoint eisiPoint1 = new EiSiPoint(6, 3, 1, _curve);
+            ECCBase16.EiSiPoint eisiPoint2 = new EiSiPoint(3, 4, 3, _curve);
             ECCBase16.EiSiPoint eisiPoint3 = ECCBase16.EiSiPoint.Addition(eisiPoint2, eisiPoint1);
             // ECCBase16.EiSiPoint eisiPoint4 = ECCBase16.EiSiPoint.Multiply(2, eisiPoint3);
 
 
-            EiSiPoint pointx = new EiSiPoint(BigInteger.Parse("456452717695284184150517795986979597953123497273"), BigInteger.Parse("485397933664854592076469554075518937538071042010"), BigInteger.Parse("416516082459139954592908659934102757974038441832"), _curve);
-            ECCBase16.AffinePoint point_convert_back = EiSiPoint.ToAffine(pointx);
+            //EiSiPoint pointx = new EiSiPoint(BigInteger.Parse("456452717695284184150517795986979597953123497273"), BigInteger.Parse("485397933664854592076469554075518937538071042010"), BigInteger.Parse("416516082459139954592908659934102757974038441832"), _curve);
+            ECCBase16.AffinePoint point_convert_back = EiSiPoint.ToAffine(eisiPoint3);
             _sw.Stop();
             setText(point_convert_back.X, point_convert_back.Y);
             setTime();
@@ -141,7 +141,7 @@ namespace FormTest
             //ECCJacobian.Point _8G = EcdsaMath.JacobianMultiply(G, 8, 19, 2, 17);
             //ECCJacobian.Point _7G = EcdsaMath.JacobianMultiply(G, 7, 19, 2, 17);
 
-            //ECCJacobian.Point p = EcdsaMath.Sub(EcdsaMath.Add(_2G, _8G, 2, 17), _7G, 2, 17);
+            //ECCJacobian.Point p = EcdsaMath.Sub(EcdsaMath.Addition(_2G, _8G, 2, 17), _7G, 2, 17);
             //setText(p.x, p.y);
 
             EiSiPoint G = new EiSiPoint(5, 1, 1, _curve);
@@ -163,9 +163,9 @@ namespace FormTest
             _sw.Start();
             try
             {
-                ReSysUtils.RunEiSi("D:\\Test\\OutputEisi");
+                ReSysUtils.RunEiSi("D:\\Test\\OutputEisiFull");
                 //ReSysUtils.RunJacobian("D:\\Test\\OutputJacobian");
-                //ReSysUtils.RunStandard("D:\\Test\\OutputStandard");
+                ReSysUtils.RunStandard("D:\\Test\\OutputStandard");
             }
             catch (Exception ex)
             {
@@ -237,7 +237,7 @@ namespace FormTest
         private void button12_Click(object sender, EventArgs e)
         {
             int n = 5;
-            int m = 20;
+            int m = 10;
             int max = 5;
             Random rd = new Random();
             ConcurrentBag<string> bag = new ConcurrentBag<string>();
@@ -250,6 +250,7 @@ namespace FormTest
                 }
             }
             WriteFile("Data.txt", string.Join(Environment.NewLine, bag), false);
+            MessageBox.Show("Gen xong");
         }
 
         private static string _data_folder = "D:\\Test\\Input";

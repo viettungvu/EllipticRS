@@ -190,6 +190,7 @@ namespace ECCBase16
             {
                 /* We've been working with 0 as a starting point, so we need to
                     * Add the `minimum` here. */
+                    * Addition the `minimum` here. */
                 return minimum + randomValue;
             }
 

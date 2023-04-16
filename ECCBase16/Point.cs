@@ -57,8 +57,6 @@ namespace ECCBase16
 
             return new AffinePoint(x4, y4, point.Curve);
         }
-
-
         public static AffinePoint FastX8(AffinePoint point)
         {
             BigInteger a = point.Curve.A;
@@ -99,8 +97,6 @@ namespace ECCBase16
             return new AffinePoint(x8, y8, point.Curve);
 
         }
-
-
         public static AffinePoint FastX16(AffinePoint point)
         {
             BigInteger a = point.Curve.A;
@@ -194,9 +190,6 @@ namespace ECCBase16
             BigInteger y3 = Numerics.Modulo(Ny3 * BigInteger.Pow(invDenominator, 3), p);
             return new AffinePoint(x3, y3, point.Curve);
         }
-
-
-
         public static AffinePoint DirectDoulbing(AffinePoint point)
         {
             BigInteger a = point.Curve.A;
@@ -230,40 +223,120 @@ namespace ECCBase16
             BigInteger y2 = Numerics.Modulo(Ny * BigInteger.Pow(invDenominator, 3), p);
             return new AffinePoint(x2, y2, point.Curve);
         }
-
         public static AffinePoint Multiply(BigInteger scalar, AffinePoint point)
         {
-            if (point.Y.IsZero)
+            if (point.Y.IsZero || scalar == 0)
             {
                 return AffinePoint.InfinityPoint;
             }
-
-            AffinePoint result = AffinePoint.InfinityPoint;
-            AffinePoint addend = point;
-            while (scalar != 0)
+            if (scalar == 3)
             {
-                if ((scalar & 1) == 1)
-                    result = AddP2P(result, addend);
-
-                addend = AddP2P(addend, addend);
-
-                scalar >>= 1;
+                return FastX3(point);
             }
-            return AffinePoint.InfinityPoint;
+            else if (scalar == 4)
+            {
+                return FastX4(point);
+            }
+            else if (scalar == 8)
+            {
+                return FastX8(point);
+            }
+            else if (scalar == 16)
+            {
+                return FastX16(point);
+            }
+
+            else
+            {
+                AffinePoint result = AffinePoint.InfinityPoint;
+                AffinePoint addend = point;
+                while (scalar != 0)
+                {
+                    if ((scalar & 1) == 1)
+                        result = Addition(result, addend);
+
+                    addend = Addition(addend, addend);
+
+                    scalar >>= 1;
+                }
+                return result;
+            }
+
+            //return AffinePoint.InfinityPoint;
         }
 
-        public static AffinePoint AddP2P(AffinePoint point1, AffinePoint point2)
+        public static AffinePoint Addition(AffinePoint first, AffinePoint second)
         {
-            if (point1 == AffinePoint.InfinityPoint)
+            if (AffinePoint.IsInfinityPoint(first))
             {
-                return point2;
+                return second;
             }
-            if (point2 == AffinePoint.InfinityPoint)
+            if (AffinePoint.IsInfinityPoint(second))
             {
-                return point1;
+                return first;
             }
 
-            return AffinePoint.InfinityPoint;
+            BigInteger temporary;
+
+            if (first.X == second.X)
+            {
+                if (first.Y != second.Y)
+                    return InfinityPoint;
+
+                temporary = (3 * BigInteger.Pow(first.X, 2) + first.Curve.A) * Numerics.ModularInverse(2 * first.Y, first.Curve.P);
+            }
+            else
+                temporary = (first.Y - second.Y) * Numerics.ModularInverse(first.X - second.X, first.Curve.P);
+
+            BigInteger newX = BigInteger.Pow(temporary, 2) - first.X - second.X;
+            BigInteger newY = first.Y + temporary * (newX - first.X);
+            AffinePoint result = new AffinePoint(Numerics.Modulo(newX, first.Curve.P), Numerics.Modulo(-newY, first.Curve.P), first.Curve);
+            return result;
+        }
+        public static AffinePoint Subtract(AffinePoint first, AffinePoint second)
+        {
+            if (first == AffinePoint.InfinityPoint)
+            {
+                return second;
+            }
+            if (second == AffinePoint.InfinityPoint)
+            {
+                return first;
+            }
+            return Addition(first, Negate(second));
+
+        }
+
+        public static AffinePoint Negate(AffinePoint point)
+        {
+            if (AffinePoint.IsInfinityPoint(point))
+            {
+                return AffinePoint.InfinityPoint;
+            }
+            BigInteger tmp = Numerics.Modulo(point.Curve.P - point.Y, point.Curve.P);
+            return new AffinePoint(point.X, tmp, point.Curve);
+        }
+
+        public static AffinePoint Base16Multiplicands(BigInteger scalar, AffinePoint point)
+        {
+            if (scalar <= 16)
+            {
+                return Multiply(scalar, point);
+            }
+
+            Dictionary<BigInteger, AffinePoint> _dic_calculated = new Dictionary<BigInteger, AffinePoint>();
+            List<int> key = Numerics.ToHexArray1(scalar);
+            AffinePoint output = AffinePoint.InfinityPoint;
+            for (int i = 0; i < key.Count; i++)
+            {
+                if (!_dic_calculated.TryGetValue(key[i], out AffinePoint rP))
+                {
+                    rP = AffinePoint.Multiply(key[i], point);
+                    _dic_calculated.Add(key[i], rP);
+                }
+                output = 16 * output + rP;
+            }
+            return output;
         }
 
         public static bool operator ==(AffinePoint p1, AffinePoint p2)
@@ -274,6 +347,22 @@ namespace ECCBase16
         public static bool operator !=(AffinePoint p1, AffinePoint p2)
         {
             return p1.X != p2.X || p1.Y != p2.Y;
+        }
+
+
+        public static AffinePoint operator -(AffinePoint p1, AffinePoint p2)
+        {
+            return Subtract(p1, p2);
+        }
+
+        public static AffinePoint operator +(AffinePoint p1, AffinePoint p2)
+        {
+            return Addition(p1, p2);
+        }
+
+        public static AffinePoint operator *(BigInteger scalar, AffinePoint p2)
+        {
+            return Base16Multiplicands(scalar, p2);
         }
     }
 
@@ -341,17 +430,22 @@ namespace ECCBase16
                 BigInteger Nx2 = point2.Nx;
                 BigInteger Ny1 = point1.Ny;
                 BigInteger Ny2 = point2.Ny;
-                if (point1 != point2 && point1 != Negate(point2))
-                {
-                    BigInteger U1 = point1.U;
-                    BigInteger U2 = point2.U;
-                    BigInteger sqr_U2 = Numerics.Modulo(BigInteger.Pow(U2, 2), p);
-                    BigInteger sqr_U1 = Numerics.Modulo(BigInteger.Pow(U1, 2), p);
-                    BigInteger cube_U1 = Numerics.Modulo(BigInteger.Pow(U1, 3), p);
-                    BigInteger cube_U2 = Numerics.Modulo(BigInteger.Pow(U2, 3), p);
 
+                BigInteger U1 = point1.U;
+                BigInteger U2 = point2.U;
+                BigInteger sqr_U2 = Numerics.Modulo(BigInteger.Pow(U2, 2), p);
+                BigInteger sqr_U1 = Numerics.Modulo(BigInteger.Pow(U1, 2), p);
+                BigInteger cube_U1 = Numerics.Modulo(BigInteger.Pow(U1, 3), p);
+                BigInteger cube_U2 = Numerics.Modulo(BigInteger.Pow(U2, 3), p);
+                BigInteger q3 = Numerics.Modulo(Nx2 * sqr_U1 - Nx1 * sqr_U2, p);
+                if (q3 == 0)
+                {
+                    return Doubling(point1);
+                }
+                else
+                {
                     BigInteger W3 = Numerics.Modulo(Ny2 * cube_U1 - Ny1 * cube_U2, p);
-                    BigInteger q3 = Numerics.Modulo(Nx2 * sqr_U1 - Nx1 * sqr_U2, p);
+
                     BigInteger sqr_q3 = Numerics.Modulo(BigInteger.Pow(q3, 2), p);
                     BigInteger cube_q3 = Numerics.Modulo(BigInteger.Pow(q3, 3), p);
                     BigInteger U3 = Numerics.Modulo(U1 * U2 * q3, p);
@@ -362,15 +456,7 @@ namespace ECCBase16
                     BigInteger Ny3 = Numerics.Modulo(W3 * (Nx1 * sqr_U2 * sqr_q3 - Nx3) - Ny1 * cube_U2 * cube_q3, p);
                     return new EiSiPoint(Nx3, Ny3, U3, point1.Curve);
                 }
-                else if (point1 == Negate(point2) || point2 == Negate(point1))
-                {
-                    return EiSiPoint.InfinityPoint;
-                }
-                else if (point1 == point2)
-                {
-                    return Doubling(point1);
-                }
-                return EiSiPoint.InfinityPoint;
+                // return EiSiPoint.InfinityPoint;
             }
 
         }
@@ -405,19 +491,24 @@ namespace ECCBase16
             return Base16Multiplicands(scalar, p2);
         }
 
-        public static bool operator ==(EiSiPoint point1, EiSiPoint point2)
+        public static bool operator ==(EiSiPoint first, EiSiPoint second)
         {
-            if (point1 is null && point2 is null)
+            if (first is null && second is null)
             {
                 return true;
             }
-            else if ((point1 is null && !(point2 is null)) || (!(point1 is null) && point2 is null))
+            else if ((first is null && !(second is null)) || (!(first is null) && second is null))
             {
                 return false;
             }
             else
             {
-                return point1.Nx == point2.Nx && point1.Ny == point2.Ny && point1.U == point2.U;
+                BigInteger q = Numerics.Modulo(second.Nx * BigInteger.Pow(first.U, 2) - first.Nx * BigInteger.Pow(second.U, 2), first.Curve.P);
+                if (q == 0)
+                {
+                    return true;
+                }
+                return first.Nx == second.Nx && first.Ny == second.Ny && first.U == second.U;
             }
         }
         public static bool operator !=(EiSiPoint point1, EiSiPoint point2)

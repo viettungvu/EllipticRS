@@ -68,9 +68,9 @@
             // tbox
             // 
             this.tbox.Font = new System.Drawing.Font("Segoe UI", 10.8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.tbox.Location = new System.Drawing.Point(11, 193);
+            this.tbox.Location = new System.Drawing.Point(11, 321);
             this.tbox.Name = "tbox";
-            this.tbox.Size = new System.Drawing.Size(777, 245);
+            this.tbox.Size = new System.Drawing.Size(702, 245);
             this.tbox.TabIndex = 2;
             this.tbox.Text = "";
             // 
@@ -78,7 +78,7 @@
             // 
             this.lblTime.AutoSize = true;
             this.lblTime.Font = new System.Drawing.Font("Segoe UI", 10.2F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.lblTime.Location = new System.Drawing.Point(12, 167);
+            this.lblTime.Location = new System.Drawing.Point(11, 295);
             this.lblTime.Name = "lblTime";
             this.lblTime.Size = new System.Drawing.Size(90, 23);
             this.lblTime.TabIndex = 3;
@@ -146,9 +146,9 @@
             // 
             // button9
             // 
-            this.button9.Location = new System.Drawing.Point(107, 74);
+            this.button9.Location = new System.Drawing.Point(11, 234);
             this.button9.Name = "button9";
-            this.button9.Size = new System.Drawing.Size(89, 58);
+            this.button9.Size = new System.Drawing.Size(702, 58);
             this.button9.TabIndex = 10;
             this.button9.Text = "Test";
             this.button9.UseVisualStyleBackColor = true;
@@ -158,7 +158,7 @@
             // 
             this.textBox1.Location = new System.Drawing.Point(12, 138);
             this.textBox1.Name = "textBox1";
-            this.textBox1.Size = new System.Drawing.Size(776, 27);
+            this.textBox1.Size = new System.Drawing.Size(702, 27);
             this.textBox1.TabIndex = 11;
             this.textBox1.TextChanged += new System.EventHandler(this.textBox1_TextChanged);
             // 
@@ -174,7 +174,7 @@
             // 
             // button11
             // 
-            this.button11.Location = new System.Drawing.Point(202, 76);
+            this.button11.Location = new System.Drawing.Point(107, 74);
             this.button11.Name = "button11";
             this.button11.Size = new System.Drawing.Size(133, 58);
             this.button11.TabIndex = 13;
@@ -184,9 +184,9 @@
             // 
             // button12
             // 
-            this.button12.Location = new System.Drawing.Point(655, 76);
+            this.button12.Location = new System.Drawing.Point(11, 194);
             this.button12.Name = "button12";
-            this.button12.Size = new System.Drawing.Size(133, 58);
+            this.button12.Size = new System.Drawing.Size(702, 35);
             this.button12.TabIndex = 14;
             this.button12.Text = "GenData";
             this.button12.UseVisualStyleBackColor = true;
@@ -196,7 +196,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 20F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(800, 450);
+            this.ClientSize = new System.Drawing.Size(725, 578);
             this.Controls.Add(this.button12);
             this.Controls.Add(this.button11);
             this.Controls.Add(this.button10);
