@@ -221,15 +221,27 @@ namespace FormTest
             _sw.Reset();
             _sw.Start();
 
-            EiSiPoint p1 = new EiSiPoint(BigInteger.Parse("23695177185302695959474394037632632634647038205"), BigInteger.Parse("603240289522561656651601992413550636336740688900"), BigInteger.Parse("419473684555853174556433946121262519071822226632"), _curve);
-            EiSiPoint p2 = new EiSiPoint(BigInteger.Parse("557943640025563640782133097065223563853896509928"), BigInteger.Parse("224104266571527473196064898897862771797759537015"), 1, _curve);
-            //EiSiPoint p2 = new EiSiPoint(11, 12, 10, _curve);
-            // EiSiPoint test =EiSiPoint.Addition(p1,p2);
-            EiSiPoint test = EiSiPoint.Addition(p1, p2);
-            EiSiPoint test2 = p2 + p1;
-            AffinePoint p = EiSiPoint.ToAffine(test);
-            setText(test.Nx, test.Ny, test.U);
-            setText(test2.Nx, test2.Ny, test2.U, false);
+            //EiSiPoint p1 = new EiSiPoint(BigInteger.Parse("23695177185302695959474394037632632634647038205"), BigInteger.Parse("603240289522561656651601992413550636336740688900"), BigInteger.Parse("419473684555853174556433946121262519071822226632"), _curve);
+            //EiSiPoint p2 = new EiSiPoint(BigInteger.Parse("557943640025563640782133097065223563853896509928"), BigInteger.Parse("224104266571527473196064898897862771797759537015"), 1, _curve);
+            ////EiSiPoint p2 = new EiSiPoint(11, 12, 10, _curve);
+            //// EiSiPoint test =EiSiPoint.Addition(p1,p2);
+            //EiSiPoint test = EiSiPoint.Addition(p1, p2);
+            //EiSiPoint test2 = p2 + p1;
+            //AffinePoint p = EiSiPoint.ToAffine(test);
+            //setText(test.Nx, test.Ny, test.U);
+            //setText(test2.Nx, test2.Ny, test2.U, false);
+
+            int max = 5;
+            int n = 5;
+            AffinePoint p1 = new AffinePoint(BigInteger.Parse("54293706468206010740729233716664291516254577251"), BigInteger.Parse("566633427538916582781098273960068059734339693874"), _curve);
+            for (int i = 0; i <= max * max * n; i++)
+            {
+                AffinePoint p2 = AffinePoint.Multiply(i, _curve.G);
+                if (p2.X == p1.X && p2.Y == p1.Y)
+                {
+                    MessageBox.Show("Done");
+                }
+            }
             _sw.Stop();
             setTime();
         }
@@ -237,7 +249,7 @@ namespace FormTest
         private void button12_Click(object sender, EventArgs e)
         {
             int n = 5;
-            int m =15;
+            int m = 6;
             int max = 5;
             Random rd = new Random();
             ConcurrentBag<string> bag = new ConcurrentBag<string>();

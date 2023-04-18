@@ -105,6 +105,23 @@ namespace ECCBase16
                         Length = 160;
                     }
                     break;
+                case CurveName.test2:
+                    {
+                        Name = name;
+
+                        P = 17;
+
+                        A = 2;
+                        B = 2;
+
+                        G = new AffinePoint(5, 1, this);
+
+                        N = 19;
+                        H = 1;
+
+                        Length = 160;
+                    }
+                    break;
             }
         }
     }
@@ -113,6 +130,7 @@ namespace ECCBase16
     {
         secp160k1 = 1,
         test = -1,
+        test2=-2,
         secp160r1=2,
         secp192k1 = 3,
     }

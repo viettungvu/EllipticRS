@@ -23,9 +23,9 @@ namespace ECCBase16
         public static AffinePoint InfinityPoint => new AffinePoint(0, 0, null);
         public static bool IsInfinityPoint(AffinePoint point) => point == InfinityPoint;
 
-        public string ToString(AffinePoint p)
+        public override string ToString()
         {
-            return string.Format("{0},{1}", p.X, p.Y);
+            return string.Format("{0},{1}", X, Y);
         }
 
         public static EiSiPoint ToEiSiPoint(AffinePoint point)
