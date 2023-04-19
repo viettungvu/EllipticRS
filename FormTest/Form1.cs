@@ -1,4 +1,5 @@
-﻿using System.Collections.Concurrent;
+﻿using System;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Drawing;
 using System.Numerics;
@@ -166,6 +167,7 @@ namespace FormTest
                 ReSysUtils.RunEiSi("D:\\Test\\OutputEisiFull");
                 //ReSysUtils.RunJacobian("D:\\Test\\OutputJacobian");
                 //ReSysUtils.RunStandard("D:\\Test\\OutputStandard");
+                ReSysUtils.RunCF();
             }
             catch (Exception ex)
             {
@@ -249,7 +251,7 @@ namespace FormTest
         private void button12_Click(object sender, EventArgs e)
         {
             int n = 5;
-            int m = 6;
+            int m = 40;
             int max = 5;
             Random rd = new Random();
             ConcurrentBag<string> bag = new ConcurrentBag<string>();
