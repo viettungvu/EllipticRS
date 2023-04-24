@@ -475,7 +475,6 @@ namespace RSService
 
                         throw;
                     }
-
                 }
                 #endregion
 
@@ -567,8 +566,6 @@ namespace RSService
         {
 
             int user_target = 0;
-            int rate_target = 1;
-            int muc_tin_target = 3;
 
             ConcurrentBag<string> concurrent_1 = new ConcurrentBag<string>();
             ConcurrentBag<string> concurrent_2 = new ConcurrentBag<string>();
@@ -587,21 +584,11 @@ namespace RSService
 
             #region Pha 2: User target mã hóa xếp hạng
 
-
             for (int j = 0; j < muc_tin; j++)
             {
                 BigInteger cj = ECCBase16.Numerics.RandomBetween(1, _curve.N - 1);
 
                 int rate = 0;
-                if (j == muc_tin_target)
-                {
-                    rate = rate_target;
-                }
-
-
-
-
-
 
                 EiSiPoint p1 = EiSiPoint.Base16Multiplicands(rate, AffinePoint.ToEiSiPoint(_curve.G));
                 EiSiPoint p2 = EiSiPoint.Base16Multiplicands(cj, AffinePoint.ToEiSiPoint(Xi));
@@ -636,7 +623,7 @@ namespace RSService
             {
                 string[] values = line.Split(',');
                 double.TryParse(values[1], out double rate_avg);
-                int avg_rounded = (int)rate_avg * 10;
+                int avg_rounded = (int)rate_avg;
                 rate_round_avg[int.Parse(values[0])] = avg_rounded;
             });
 
@@ -658,95 +645,117 @@ namespace RSService
             });
 
 
-
-
-
-
-            BigInteger c1 = ECCBase16.Numerics.RandomBetween(1, _curve.N - 1);
-            BigInteger c2 = ECCBase16.Numerics.RandomBetween(1, _curve.N - 1);
-            BigInteger c3 = ECCBase16.Numerics.RandomBetween(1, _curve.N - 1);
             EiSiPoint G = AffinePoint.ToEiSiPoint(_curve.G);
-            //Tính F5,k
-            //EiSiPoint p1
-            EiSiPoint p = EiSiPoint.Base16Multiplicands(c1, AffinePoint.ToEiSiPoint(Xi));
-
-            EiSiPoint sum5 = EiSiPoint.InfinityPoint;
-            EiSiPoint f7 = EiSiPoint.InfinityPoint;
-            for (int j = 0; j < muc_tin; j++)
+            for (int i = 0; i < muc_tin; i++)
             {
-                EiSiPoint p5 = EiSiPoint.Base16Multiplicands(sim_rounded[muc_tin_target, j], G);
-                sum5 = EiSiPoint.Addition(sum5, p5);
+                EiSiPoint sum5 = EiSiPoint.InfinityPoint;
+                for (int j = 0; j < muc_tin - 1; j++)
+                {
+                    for (int k = j + 1; k < muc_tin; k++)
+                    {
+                        BigInteger c1 = ECCBase16.Numerics.RandomBetween(1, _curve.N - 1);
+                        BigInteger c2 = ECCBase16.Numerics.RandomBetween(1, _curve.N - 1);
+                        BigInteger c3 = ECCBase16.Numerics.RandomBetween(1, _curve.N - 1);
+                        EiSiPoint skj_g = EiSiPoint.Base16Multiplicands(sim_rounded[k, j], G);
+                    }
+                }
 
-
-                EiSiPoint p7 = EiSiPoint.Base16Multiplicands(rate_round_avg[j], G);
-                EiSiPoint p7j = EiSiPoint.Addition(p7, p);
-                f7 = EiSiPoint.Addition(f7, p7j);
-            };
-            f7 = EiSiPoint.Addition(f7, EiSiPoint.Base16Multiplicands(c2,AffinePoint.ToEiSiPoint(Xi)));
-
-            sum5 = EiSiPoint.Base16Multiplicands(rate_round_avg[muc_tin_target], sum5);
-            EiSiPoint f5 = EiSiPoint.Addition(EiSiPoint.Base16Multiplicands(rate_round_avg[muc_tin_target], sum5), p);
-
-
-            ECCBase16.EiSiPoint f6 = EiSiPoint.Base16Multiplicands(c1, AffinePoint.ToEiSiPoint(_curve.G));
-            ECCBase16.EiSiPoint f8 = EiSiPoint.Base16Multiplicands(c2, AffinePoint.ToEiSiPoint(_curve.G));
-            ECCBase16.EiSiPoint f12 = EiSiPoint.Base16Multiplicands(c3, AffinePoint.ToEiSiPoint(_curve.G));
-
-
-            ///Tính f9, f10, f11, f12
-            EiSiPoint f9 = EiSiPoint.InfinityPoint;
-            EiSiPoint f10 = EiSiPoint.InfinityPoint;
-            EiSiPoint f11 = EiSiPoint.InfinityPoint;
-            for (int j = 0; j < muc_tin; j++)
-            {
-                EiSiPoint sub9 = EiSiPoint.Subtract(ctext_part_1[j], f7);
-                EiSiPoint mul9 = EiSiPoint.Base16Multiplicands(sim_rounded[muc_tin_target, j], sub9);
-                EiSiPoint tmp9 = f9;
-                f9 = EiSiPoint.Addition(tmp9, mul9);
-
-                EiSiPoint sub10 = EiSiPoint.Subtract(ctext_part_2[j], f8);
-                EiSiPoint mul10 = EiSiPoint.Multiply(sim_rounded[muc_tin_target, j], sub10);
-                EiSiPoint tmp10 = f10;
-                f10 = EiSiPoint.Addition(tmp10, mul10);
-
-                EiSiPoint mul11 = EiSiPoint.Multiply(sim_rounded[muc_tin_target, j], G);
-                f11 = EiSiPoint.Addition(f11, mul11);
             }
 
-            f9 = EiSiPoint.Addition(f5, f9);
-            f10 = EiSiPoint.Addition(f6, f10);
-            f11 = EiSiPoint.Addition(f11, EiSiPoint.Base16Multiplicands(c3, AffinePoint.ToEiSiPoint(Xi)));
 
 
+
+            #region old
+            //BigInteger c1 = ECCBase16.Numerics.RandomBetween(1, _curve.N - 1);
+            //BigInteger c2 = ECCBase16.Numerics.RandomBetween(1, _curve.N - 1);
+            //BigInteger c3 = ECCBase16.Numerics.RandomBetween(1, _curve.N - 1);
+            //EiSiPoint G = AffinePoint.ToEiSiPoint(_curve.G);
+            //Tính F5, k
+
+
+
+
+
+            //EiSiPoint p = EiSiPoint.Base16Multiplicands(c1, AffinePoint.ToEiSiPoint(Xi));
+
+            //EiSiPoint sum5 = EiSiPoint.InfinityPoint;
+            //EiSiPoint f7 = EiSiPoint.InfinityPoint;
+            //for (int j = 0; j < muc_tin; j++)
+            //{
+            //    EiSiPoint p5 = EiSiPoint.Base16Multiplicands(sim_rounded[muc_tin_target, j], G);
+            //    sum5 = EiSiPoint.Addition(sum5, p5);
+
+
+            //    EiSiPoint p7 = EiSiPoint.Base16Multiplicands(rate_round_avg[j], G);
+            //    EiSiPoint p7j = EiSiPoint.Addition(p7, p);
+            //    f7 = EiSiPoint.Addition(f7, p7j);
+            //};
+            //f7 = EiSiPoint.Addition(f7, EiSiPoint.Base16Multiplicands(c2, AffinePoint.ToEiSiPoint(Xi)));
+
+            //sum5 = EiSiPoint.Base16Multiplicands(rate_round_avg[muc_tin_target], sum5);
+            //EiSiPoint f5 = EiSiPoint.Addition(EiSiPoint.Base16Multiplicands(rate_round_avg[muc_tin_target], sum5), p);
+
+
+            //ECCBase16.EiSiPoint f6 = EiSiPoint.Base16Multiplicands(c1, AffinePoint.ToEiSiPoint(_curve.G));
+            //ECCBase16.EiSiPoint f8 = EiSiPoint.Base16Multiplicands(c2, AffinePoint.ToEiSiPoint(_curve.G));
+            //ECCBase16.EiSiPoint f12 = EiSiPoint.Base16Multiplicands(c3, AffinePoint.ToEiSiPoint(_curve.G));
+
+
+            /// Tính f9, f10, f11, f12
+            //EiSiPoint f9 = EiSiPoint.InfinityPoint;
+            //EiSiPoint f10 = EiSiPoint.InfinityPoint;
+            //EiSiPoint f11 = EiSiPoint.InfinityPoint;
+            //for (int j = 0; j < muc_tin; j++)
+            //{
+            //    EiSiPoint sub9 = EiSiPoint.Subtract(ctext_part_1[j], f7);
+            //    EiSiPoint mul9 = EiSiPoint.Base16Multiplicands(sim_rounded[muc_tin_target, j], sub9);
+            //    EiSiPoint tmp9 = f9;
+            //    f9 = EiSiPoint.Addition(tmp9, mul9);
+
+            //    EiSiPoint sub10 = EiSiPoint.Subtract(ctext_part_2[j], f8);
+            //    EiSiPoint mul10 = EiSiPoint.Multiply(sim_rounded[muc_tin_target, j], sub10);
+            //    EiSiPoint tmp10 = f10;
+            //    f10 = EiSiPoint.Addition(tmp10, mul10);
+
+            //    EiSiPoint mul11 = EiSiPoint.Multiply(sim_rounded[muc_tin_target, j], G);
+            //    f11 = EiSiPoint.Addition(f11, mul11);
+            //}
+
+            //f9 = EiSiPoint.Addition(f5, f9);
+            //f10 = EiSiPoint.Addition(f6, f10);
+            //f11 = EiSiPoint.Addition(f11, EiSiPoint.Base16Multiplicands(c3, AffinePoint.ToEiSiPoint(Xi)));
+
+
+            //#endregion
+
+
+            //#region Pha 4;
+
+            //AffinePoint Ck5 = EiSiPoint.ToAffine(EiSiPoint.Subtract(f9, EiSiPoint.Base16Multiplicands(xi, f10)));
+            //AffinePoint C = EiSiPoint.ToAffine(EiSiPoint.Subtract(f11, EiSiPoint.Base16Multiplicands(xi, f12)));
+
+
+            //int dk = 0;
+            //int d = 0;
+            //AffinePoint sumDk = AffinePoint.InfinityPoint;
+            //AffinePoint sumD = AffinePoint.InfinityPoint;
+            //for (int j = 0; j < muc_tin; j++)
+            //{
+            //    sumDk = AffinePoint.Multiply(j, _curve.G);
+            //    sumD = AffinePoint.Multiply(j, _curve.G);
+
+            //    if (sumDk.X == Ck5.X && sumDk.Y == Ck5.Y)
+            //    {
+            //        dk = j;
+            //    }
+            //    if (sumD.X == C.X && sumD.Y == C.Y)
+            //    {
+            //        d = j;
+            //    }
+            //}
+
+            //double Pik = dk / d;
             #endregion
-
-
-            #region Pha 4;
-
-            AffinePoint Ck5 = EiSiPoint.ToAffine(EiSiPoint.Subtract(f9, EiSiPoint.Base16Multiplicands(xi, f10)));
-            AffinePoint C = EiSiPoint.ToAffine(EiSiPoint.Subtract(f11, EiSiPoint.Base16Multiplicands(xi, f12)));
-
-
-            int dk = 0;
-            int d = 0;
-            AffinePoint sumDk = AffinePoint.InfinityPoint;
-            AffinePoint sumD = AffinePoint.InfinityPoint;
-            for (int j = 0; j < muc_tin; j++)
-            {
-                sumDk = AffinePoint.Multiply(j, _curve.G);
-                sumD = AffinePoint.Multiply(j, _curve.G);
-
-                if (sumDk.X == Ck5.X && sumDk.Y == Ck5.Y)
-                {
-                    dk = j;
-                }
-                if (sumD.X == C.X && sumD.Y == C.Y)
-                {
-                    d = j;
-                }
-            }
-
-            double Pik = dk / d;
             #endregion
         }
 
