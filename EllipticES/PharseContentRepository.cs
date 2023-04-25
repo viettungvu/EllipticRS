@@ -31,7 +31,7 @@ namespace EllipticES
             {
                 if (_instance == null)
                 {
-                    _default_index = "rs_user_key";
+                    _default_index = "rs_pharse_content";
                     _instance = new PharseContentRepository(_default_index);
                 }
                 return _instance;
@@ -50,7 +50,7 @@ namespace EllipticES
 
         public bool IndexMany(IEnumerable<PharseContent> list_user_rate)
         {
-            if (list_user_rate == null)
+            if (list_user_rate != null)
             {
                 return IndexMany<PharseContent>(_default_index, list_user_rate);
             }

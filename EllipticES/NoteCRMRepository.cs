@@ -38,7 +38,7 @@ namespace RSES
 
         public bool Index(NoteCRM data)
         {
-            return Index<NoteCRM>(_default_index, data, "", "");
+            return Index<NoteCRM>(_default_index, data, "", data.id);
         }
     }
 }

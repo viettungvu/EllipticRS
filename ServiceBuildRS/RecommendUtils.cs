@@ -38,7 +38,7 @@ namespace ServiceBuildRS
                 EiSiPoint[,] KPUij = new EiSiPoint[users, news];
                 Parallel.ForEach(data_pha_1, key =>
                 {
-                    KPUij[key.user_index, key.news_index] = AffinePoint.ToEiSiPoint(key.point);
+                    KPUij[key.user_index, key.news_index] = PointPharseContent.ToEiSiPoint(key.point, _curve);
                 });
 
                 ConcurrentBag<PharseContent> list_pharse_2 = new ConcurrentBag<PharseContent>();
@@ -57,7 +57,7 @@ namespace ServiceBuildRS
                     {
                         news_index = j,
                         pharse = Pharse.BUILD_SINH_KHOA_DUNG_CHUNG,
-                        point = sum,
+                        point = PointPharseContent.Map(sum),
                     };
                     user_key.AutoId();
                     list_pharse_2.Add(user_key);
@@ -103,7 +103,7 @@ namespace ServiceBuildRS
                 ECCBase16.AffinePoint[,] AUij = new ECCBase16.AffinePoint[users, ns];
                 Parallel.ForEach(data_pha_3, aui =>
                 {
-                    AUij[aui.user_index, aui.news_index] = aui.point;
+                    AUij[aui.user_index, aui.news_index] = PointPharseContent.ToAffinePoint(aui.point, _curve);
                 });
                 ConcurrentBag<PharseContent> list_pharse_4 = new ConcurrentBag<PharseContent>();
                 Parallel.For(0, ns, (j) =>
@@ -118,7 +118,7 @@ namespace ServiceBuildRS
                     PharseContent pharse_4 = new PharseContent
                     {
                         news_index = j,
-                        point = affine,
+                        point = PointPharseContent.Map(affine),
                         pharse = Pharse.BUILD_TINH_TONG_BAO_MAT,
                     };
                     pharse_4.AutoId();
@@ -143,7 +143,7 @@ namespace ServiceBuildRS
                     sw.Start();
                     Parallel.ForEach(list_pharse_4, aj =>
                     {
-                        Aj[aj.news_index] = aj.point;
+                        Aj[aj.news_index] = PointPharseContent.ToAffinePoint(aj.point, _curve);
                     });
                     int[] data_loga = _brfStandard(Aj, ns, _max * _max * users);
                     _calculateSimilary(data_loga, news);

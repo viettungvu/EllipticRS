@@ -4,6 +4,7 @@ using System.Linq;
 using System.Numerics;
 using System.Reflection.Emit;
 using System.Security.Cryptography;
+using Newtonsoft.Json;
 
 namespace ECCBase16
 {
@@ -11,7 +12,7 @@ namespace ECCBase16
     {
         public BigInteger X { get; set; }
         public BigInteger Y { get; set; }
-
+        [JsonIgnore]
         public Curve Curve { get; set; }
 
         public AffinePoint(BigInteger x, BigInteger y, Curve curve)

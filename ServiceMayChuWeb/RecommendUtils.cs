@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -18,9 +20,12 @@ namespace ServiceMayChuWeb
 {
     public class RecommendUtils
     {
-        private static Curve _curve = new ECCBase16.Curve(name: ECCBase16.CurveName.secp160k1);
+        private static readonly Curve _curve = new ECCBase16.Curve(name: ECCBase16.CurveName.secp160k1);
+        private static readonly string url_server_suggest = ConfigurationManager.AppSettings["UrlWebServer"];
         public static void XayDungHeGoiY()
         {
+            string url_api_receive = Path.Combine(url_server_suggest, "api\\generate-common-key");
+
             List<UserRate> user_rates = UserRateRepository.Instance.GetAll(out long total);
             long users = user_rates.Select(x => x.user_index).Distinct().Count();
             long news = user_rates.Select(x => x.news_index).Distinct().Count();
@@ -49,7 +54,6 @@ namespace ServiceMayChuWeb
                 for (long j = 2 * news; j < 3 * news; j++)
                 {
                     Rns[i, j] = Ri[i, j - 2 * news] * Ri[i, j - 2 * news];
-
                 }
 
                 long t = 3 * news;
@@ -85,8 +89,8 @@ namespace ServiceMayChuWeb
                             news_index = j,
                             user_index = i,
                             pharse = Pharse.BUILD_SINH_KHOA_CONG_KHAI,
-                            secret = secret,
-                            point = EiSiPoint.ToAffine(pub),
+                            secret = secret.ToString(),
+                            point = PointPharseContent.Map(pub_in_affine),
                         };
                         user_key.AutoId();
                         list_user_key.Add(user_key);
@@ -98,7 +102,7 @@ namespace ServiceMayChuWeb
                 {
                     users = users,
                     news = news,
-                    time_complete = sw.ElapsedMilliseconds / 1000,
+                    time_complete = sw.ElapsedMilliseconds / 60000,
                 };
                 NoteCRMRepository.Instance.Index(crm);
 
@@ -110,7 +114,11 @@ namespace ServiceMayChuWeb
                     x.pharse,
                     x.id,
                 });
-                PostRequest("", send_data);
+                if (send_data != null && send_data.Any())
+                {
+                    _postRequest(url_api_receive, send_data);
+
+                }
             }
             catch (Exception ex)
             {
@@ -131,13 +139,13 @@ namespace ServiceMayChuWeb
                 EiSiPoint[] KPj = new EiSiPoint[nk];
                 Parallel.ForEach(data_pha_2, kp =>
                 {
-                    KPj[kp.news_index] = AffinePoint.ToEiSiPoint(kp.point);
+                    KPj[kp.news_index] = PointPharseContent.ToEiSiPoint(kp.point, _curve);
                 });
 
                 BigInteger[,] ksuij = new BigInteger[users, news];
                 Parallel.ForEach(data_pha_1, ksu =>
                 {
-                    ksuij[ksu.user_index, ksu.news_index] = ksu.secret;
+                    ksuij[ksu.user_index, ksu.news_index] = BigInteger.Parse(ksu.secret, System.Globalization.NumberStyles.Number);
                 });
 
                 ConcurrentBag<PharseContent> ma_hoa_xep_hang = new ConcurrentBag<PharseContent>();
@@ -164,7 +172,7 @@ namespace ServiceMayChuWeb
                             {
                                 user_index = i,
                                 news_index = j,
-                                point = p5,
+                                point = PointPharseContent.Map(p5),
                                 pharse = Pharse.BUILD_MA_HOA_XEP_HANG,
                             };
                             pharse_content.AutoId();
@@ -181,7 +189,7 @@ namespace ServiceMayChuWeb
                 {
                     users = users,
                     news = news,
-                    time_complete = sw.ElapsedMilliseconds / 1000,
+                    time_complete = sw.ElapsedMilliseconds / 60000,
                 };
                 NoteCRMRepository.Instance.Index(crm);
                 IEnumerable<object> send_data = ma_hoa_xep_hang.Select(x => new
@@ -192,7 +200,10 @@ namespace ServiceMayChuWeb
                     x.pharse,
                     x.id,
                 });
-                PostRequest("", send_data);
+                if (send_data != null && send_data.Any())
+                {
+                    _postRequest(url_api_receive, send_data);
+                }
             }
             catch (Exception ex)
             {
@@ -202,7 +213,7 @@ namespace ServiceMayChuWeb
         }
 
 
-        public static async void PostRequest(string uri, object send_data)
+        private static async void _postRequest(string uri, object send_data)
         {
             if (!string.IsNullOrWhiteSpace(uri))
             {
@@ -214,6 +225,30 @@ namespace ServiceMayChuWeb
                     await client.PostAsync(uri, form_data);
                 }
             }
+        }
+
+        public static void GenData()
+        {
+            long users = 10;
+            long news = 20;
+            List<UserRate> user_rates = new List<UserRate>();
+            Random rd = new Random();
+
+            for (int i = 0; i < users; i++)
+            {
+                for (int j = 0; j < news; j++)
+                {
+                    UserRate ur = new UserRate
+                    {
+                        news_index = j,
+                        user_index = i,
+                        rate = rd.Next(0, 5),
+                    };
+                    ur.AutoId();
+                    user_rates.Add(ur);
+                }
+            }
+            UserRateRepository.Instance.IndexMany(user_rates);
         }
 
     }

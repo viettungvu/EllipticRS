@@ -15,7 +15,7 @@ namespace EllipticES
         public UserRateRepository(string modify_index)
         {
             _default_index = !string.IsNullOrEmpty(modify_index) ? modify_index : _default_index;
-            ConnectionSettings settings = new ConnectionSettings(connectionPool, sourceSerializer: Nest.JsonNetSerializer.JsonNetSerializer.Default).DefaultIndex(_default_index).DisableDirectStreaming(true);
+            ConnectionSettings settings = new ConnectionSettings(connectionPool, sourceSerializer: Nest.JsonNetSerializer.JsonNetSerializer.Default).DefaultIndex(_default_index).DisableDirectStreaming();
             settings.MaximumRetries(10);
             client = new ElasticClient(settings);
             var ping = client.Ping(p => p.Pretty(true));
@@ -50,7 +50,7 @@ namespace EllipticES
 
         public bool IndexMany(IEnumerable<UserRate> list_user_rate)
         {
-            if (list_user_rate == null)
+            if (list_user_rate != null)
             {
                 return IndexMany<UserRate>(_default_index, list_user_rate);
             }
