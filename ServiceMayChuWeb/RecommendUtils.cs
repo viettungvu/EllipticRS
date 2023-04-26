@@ -22,13 +22,13 @@ namespace ServiceMayChuWeb
     {
         private static readonly Curve _curve = new ECCBase16.Curve(name: ECCBase16.CurveName.secp160k1);
         private static readonly string url_server_suggest = ConfigurationManager.AppSettings["UrlWebServer"];
-        public static void XayDungHeGoiY()
+        public static async Task XayDungHeGoiY()
         {
-            string url_api_receive = Path.Combine(url_server_suggest, "api\\generate-common-key");
+            string url_api_receive = url_server_suggest + "/api/generate-common-key";
 
             List<UserRate> user_rates = UserRateRepository.Instance.GetAll(out long total);
-            long users = user_rates.Select(x => x.user_index).Distinct().Count();
-            long news = user_rates.Select(x => x.news_index).Distinct().Count();
+            long users = user_rates.Max(x => x.user_index) + 1;
+            long news = user_rates.Max(x => x.news_index) + 1;
             int[,] Ri = new int[users, news];
             Parallel.ForEach(user_rates, item =>
             {
@@ -86,8 +86,8 @@ namespace ServiceMayChuWeb
                         AffinePoint pub_in_affine = EiSiPoint.ToAffine(pub);
                         PharseContent user_key = new PharseContent()
                         {
-                            news_index = j,
                             user_index = i,
+                            news_index = j,
                             pharse = Pharse.BUILD_SINH_KHOA_CONG_KHAI,
                             secret = secret.ToString(),
                             point = PointPharseContent.Map(pub_in_affine),
@@ -132,17 +132,17 @@ namespace ServiceMayChuWeb
                 sw.Start();
                 List<PharseContent> data_pha_1 = PharseContentRepository.Instance.GetByPharse(Pharse.BUILD_SINH_KHOA_CONG_KHAI, out _);
                 List<PharseContent> data_pha_2 = PharseContentRepository.Instance.GetByPharse(Pharse.BUILD_SINH_KHOA_DUNG_CHUNG, out _);
-                users = data_pha_2.Max(x => x.user_index);
-                news = data_pha_2.Max(x => x.news_index);
-                ns = news * (news + 5) / 2;
-                nk = (int)Math.Ceiling(0.5 + Math.Sqrt(ns * 2 + 0.25));
+                users = data_pha_1.Max(x => x.user_index) + 1;
+                nk = data_pha_1.Max(x => x.news_index) + 1;
+                //ns = news * (news + 5) / 2;
+                //nk = (int)Math.Ceiling(0.5 + Math.Sqrt(ns * 2 + 0.25));
                 EiSiPoint[] KPj = new EiSiPoint[nk];
                 Parallel.ForEach(data_pha_2, kp =>
                 {
                     KPj[kp.news_index] = PointPharseContent.ToEiSiPoint(kp.point, _curve);
                 });
 
-                BigInteger[,] ksuij = new BigInteger[users, news];
+                BigInteger[,] ksuij = new BigInteger[users, nk];
                 Parallel.ForEach(data_pha_1, ksu =>
                 {
                     ksuij[ksu.user_index, ksu.news_index] = BigInteger.Parse(ksu.secret, System.Globalization.NumberStyles.Number);
@@ -202,7 +202,7 @@ namespace ServiceMayChuWeb
                 });
                 if (send_data != null && send_data.Any())
                 {
-                    _postRequest(url_api_receive, send_data);
+                    await _postRequest(url_api_receive, send_data);
                 }
             }
             catch (Exception ex)
@@ -213,7 +213,7 @@ namespace ServiceMayChuWeb
         }
 
 
-        private static async void _postRequest(string uri, object send_data)
+        private static async Task _postRequest(string uri, object send_data)
         {
             if (!string.IsNullOrWhiteSpace(uri))
             {
@@ -222,7 +222,7 @@ namespace ServiceMayChuWeb
                     MultipartFormDataContent form_data = new MultipartFormDataContent();
                     form_data.Add(new StringContent(JsonConvert.SerializeObject(send_data)), "PharseContent");
                     form_data.Headers.ContentType = MediaTypeHeaderValue.Parse("multipart/form-data");
-                    await client.PostAsync(uri, form_data);
+                    var response = await client.PostAsync(uri, form_data);
                 }
             }
         }
