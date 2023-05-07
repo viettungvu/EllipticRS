@@ -334,14 +334,14 @@ namespace FormTest
                             {
                                 id = movie_id.ToString(),// row_data[0].ToString(),
                                 loai = LoaiPhim.PHIM,
-                                ten = row_data[1].ToString(),
+                                title = row_data[1].ToString(),
                             };
                             string[] ten_loai_phim = row_data[2].ToString().Split("|");
 
-                            List<Phim> the_loai_da_co = dsach_loai_phim.FindAll(x => ten_loai_phim.Contains(x.ten));
+                            List<Phim> the_loai_da_co = dsach_loai_phim.FindAll(x => ten_loai_phim.Contains(x.title));
                             if (the_loai_da_co.Any())
                             {
-                                phim.id_loai_phim.AddRange(the_loai_da_co.Select(x => x.id));
+                                phim.genre_ids.AddRange(the_loai_da_co.Select(x => x.id));
                             }
                             else
                             {
@@ -352,11 +352,11 @@ namespace FormTest
                                         Phim loai_phim = new Phim()
                                         {
                                             id = Guid.NewGuid().ToString(),
-                                            ten = loai,
+                                            title = loai,
                                             loai = LoaiPhim.THE_LOAI_PHIM,
                                         };
                                         dsach_loai_phim.Add(loai_phim);
-                                        phim.id_loai_phim.Add(loai_phim.id);
+                                        phim.genre_ids.Add(loai_phim.id);
                                     }
                                 }
                             }

@@ -32,4 +32,11 @@ namespace EllipticModels
         PHIM=1,
         THE_LOAI_PHIM=2,
     }
+
+    public enum MediaType
+    {
+        ALL=0,
+        MOVIE=1,
+        TV=2,
+    }
 }
