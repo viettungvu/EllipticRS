@@ -12,6 +12,8 @@
     <ProjectReference Include="..\ECC.NET.Exceptions\ECC.NET.Exceptions.csproj" />
     <ProjectReference Include="..\ECC.NET\ECCStandard.csproj" />
     <ProjectReference Include="..\ECCBase16\ECCBase16.csproj" />
+    <ProjectReference Include="..\EllipticES\EllipticES.csproj" />
+    <ProjectReference Include="..\EllipticModels\EllipticModels.csproj" />
     <ProjectReference Include="..\RSECC\ECCJacobian.csproj" />
   </ItemGroup>
 

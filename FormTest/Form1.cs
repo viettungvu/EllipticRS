@@ -1,11 +1,16 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Data;
 using System.Diagnostics;
 using System.Drawing;
 using System.Numerics;
 using System.Text;
+using ClosedXML.Excel;
+using DocumentFormat.OpenXml.Spreadsheet;
 using ECCBase16;
 using ECCJacobian;
+using EllipticES;
+using EllipticModels;
 using RSService;
 using static System.Net.Mime.MediaTypeNames;
 
@@ -287,6 +292,237 @@ namespace FormTest
                     File.WriteAllText(full_path, content);
                 }
             }
+        }
+
+        int max_user_id = 5;
+        int max_film_id = 40;
+
+        private void button13_Click(object sender, EventArgs e)
+        {
+            string file = "E:\\0. DATN\\ml-latest-small\\movies.xlsx";
+            if (System.IO.File.Exists(file))
+            {
+                using (IXLWorkbook workbook = new XLWorkbook(file))
+                {
+                    bool header = true;
+                    string read_range = "";
+                    IXLWorksheet sheet = workbook.Worksheet(1);
+                    DataTable table = new DataTable();
+                    table.Columns.Add("C1");
+                    table.Columns.Add("C2");
+                    table.Columns.Add("C3");
+                    List<Phim> dsach_phim = new List<Phim>();
+                    List<Phim> dsach_loai_phim = new List<Phim>();
+                    long movie_id = 0;
+                    foreach (IXLRow row in sheet.RowsUsed())
+                    {
+                        if (header)
+                        {
+                            read_range = string.Format("{0}:{1}", 1, row.LastCellUsed().Address.ColumnNumber);
+                            header = false;
+                        }
+                        else
+                        {
+                            IXLCell[] cells = row.Cells(read_range).ToArray();
+                            DataRow row_data = table.NewRow();
+                            for (int i = 0; i < cells.Count(); i++)
+                            {
+                                row_data[i] = cells[i].Value.ToString();
+                            }
+                            
+                            Phim phim = new Phim()
+                            {
+                                id = movie_id.ToString(),// row_data[0].ToString(),
+                                loai = LoaiPhim.PHIM,
+                                ten = row_data[1].ToString(),
+                            };
+                            string[] ten_loai_phim = row_data[2].ToString().Split("|");
+
+                            List<Phim> the_loai_da_co = dsach_loai_phim.FindAll(x => ten_loai_phim.Contains(x.ten));
+                            if (the_loai_da_co.Any())
+                            {
+                                phim.id_loai_phim.AddRange(the_loai_da_co.Select(x => x.id));
+                            }
+                            else
+                            {
+                                foreach (string loai in ten_loai_phim)
+                                {
+                                    if (loai != "(no genres listed)")
+                                    {
+                                        Phim loai_phim = new Phim()
+                                        {
+                                            id = Guid.NewGuid().ToString(),
+                                            ten = loai,
+                                            loai = LoaiPhim.THE_LOAI_PHIM,
+                                        };
+                                        dsach_loai_phim.Add(loai_phim);
+                                        phim.id_loai_phim.Add(loai_phim.id);
+                                    }
+                                }
+                            }
+                            if (long.TryParse(row_data[0].ToString(), out long id))
+                            {
+                                if (dsach_phim.Count() < max_film_id)
+                                {
+                                    dsach_phim.Add(phim);
+                                    movie_id += 1;
+                                }
+                            }
+                        }
+                    }
+
+                    if (dsach_loai_phim.Any())
+                    {
+                        TheLoaiPhimRepository.Instance.IndexMany(dsach_loai_phim);
+                    }
+                    if (dsach_phim.Any())
+                    {
+                        PhimRepository.Instance.IndexMany(dsach_phim);
+                    }
+                }
+            }
+        }
+
+        private void button14_Click(object sender, EventArgs e)
+        {
+            //string file = "E:\\0. DATN\\ml-latest-small\\ratings.xlsx";
+            //if (System.IO.File.Exists(file))
+            //{
+            //    using (IXLWorkbook workbook = new XLWorkbook(file))
+            //    {
+            //        bool header = true;
+            //        string read_range = "";
+            //        IXLWorksheet sheet = workbook.Worksheet(1);
+            //        DataTable table = new DataTable();
+            //        table.Columns.Add("C1");
+            //        table.Columns.Add("C2");
+            //        table.Columns.Add("C3");
+            //        table.Columns.Add("C4");
+            //        List<UserRate> dsach_rate = new List<UserRate>();
+
+            //        foreach (IXLRow row in sheet.RowsUsed())
+            //        {
+            //            if (header)
+            //            {
+            //                read_range = string.Format("{0}:{1}", 1, row.LastCellUsed().Address.ColumnNumber);
+            //                header = false;
+            //            }
+            //            else
+            //            {
+            //                IXLCell[] cells = row.Cells(read_range).ToArray();
+            //                DataRow row_data = table.NewRow();
+            //                for (int i = 0; i < cells.Count(); i++)
+            //                {
+            //                    row_data[i] = cells[i].Value.ToString();
+            //                }
+            //                double.TryParse(row_data[2].ToString(), out double rate_dbl);
+
+            //                if (long.TryParse(row_data[0].ToString(), out long user_index) && long.TryParse(row_data[1].ToString(), out long movie_index))
+            //                {
+            //                    if (user_index < max_user_id && movie_index < max_film_id)
+            //                    {
+            //                        UserRate rate = new UserRate()
+            //                        {
+            //                            user_id = row_data[0].ToString(),
+            //                            movie_id = row_data[1].ToString(),
+            //                            user_index = int.Parse(row_data[0].ToString()),
+            //                            movie_index = int.Parse(row_data[1].ToString()),
+            //                            rate = (int)rate_dbl
+            //                        };
+            //                        rate.AutoId();
+            //                        dsach_rate.Add(rate);
+            //                    }
+            //                }
+            //            }
+            //        }
+
+            //        if (dsach_rate.Any())
+            //        {
+            //            UserRateRepository.Instance.IndexMany(dsach_rate);
+            //        }
+            //    }
+            //}
+
+
+            //long users = 0;
+            //long movies = 0;
+            //List<TaiKhoan> dsach_tai_khoan = TaiKhoanRepository.Instance.GetAll(out users, 1, 99999, new string[] { "id", "index" });
+            //List<Phim> dsach_movie = PhimRepository.Instance.GetAll(out movies, 1, 99999, new string[] { "id", "index" });
+
+            //Random rd = new Random();
+            //List<UserRate> rates = new List<UserRate>();
+            //foreach (var tk in dsach_tai_khoan)
+            //{
+            //    int x = rd.Next(0, (int)movies);
+            //    for (int i = 0; i < x; i++)
+            //    {
+            //        int movie_index = rd.Next(0, (int)movies);
+            //        int rate = rd.Next(0, 6);
+            //        if (rate == 0)
+            //        {
+            //            continue;
+            //        }
+            //        else
+            //        {
+            //            UserRate user_rate = new UserRate()
+            //            {
+            //                user_id = tk.id,
+            //                movie_id = dsach_movie[movie_index].id,
+            //                rate = (int)rate
+            //            };
+            //            user_rate.AutoId().SetMetaData();
+            //            rates.Add(user_rate);
+            //        }
+            //    }
+            //}
+           string[] data = ReSysUtils.ReadFileInput("Data.txt");
+            List<UserRate> rates = new List<UserRate>();
+            Parallel.ForEach(data, line =>
+            {
+                string[] values = line.Split(',');
+                UserRate rate = new UserRate()
+                {
+                    user_id = (int.Parse(values[0]) - 1).ToString(),
+                    movie_id= (int.Parse(values[1]) - 1).ToString(),
+                    rate= int.Parse(values[2])
+                };
+                rate.AutoId().SetMetaData();
+                rates.Add(rate);
+            });
+            UserRateRepository.Instance.IndexMany(rates);
+        }
+
+        private void button15_Click(object sender, EventArgs e)
+        {
+            ConcurrentBag<TaiKhoan> bag = new ConcurrentBag<TaiKhoan>();
+            Parallel.For(0, 5, (i) =>
+            {
+                TaiKhoan tk = new TaiKhoan()
+                {
+                    username = "" + i,
+                    password = "user" + i,
+                    index = i,
+                    id = "" + i
+                };
+                tk.SetMetaData();
+                bag.Add(tk);
+            });
+            List<TaiKhoan> dsach_tai_khoan = bag.ToList();
+            TaiKhoanRepository.Instance.IndexMany(dsach_tai_khoan);
+        }
+        private static readonly string _key_user_prv = "0.1.KeyUserPrv.txt";
+        private static readonly string _key_user_pub = "0.2.KeyUserPub.txt";
+        private static readonly string _key_common = "0.3.KeyCommon.txt";
+        private static readonly string _encrypt = "0.4.Encrypt.txt";
+        private static readonly string _sum_encrypt = "0.5.SumEncrypt.txt";
+        private static readonly string _sum_encrypt_2 = "0.5.1.SumEncrypt.txt";
+        private static readonly string _get_sum_encrypt = "0.6.Sum.txt";
+        private static readonly string _sim = "0.7.Sim.txt";
+        private static readonly string _sim_round = "0.7.SimRounded.txt";
+        private static readonly string _rate_avg = "0.8.RateAvg.txt";
+        private static readonly string _rns = "0.0.Rns.txt";
+        private void button16_Click(object sender, EventArgs e)
+        {
         }
     }
 }

@@ -11,6 +11,8 @@ using System.Transactions;
 using ECCBase16;
 using ECCJacobian;
 using ECCStandard;
+using EllipticES;
+using EllipticModels;
 using log4net;
 using log4net.Config;
 using log4net.Core;
@@ -49,9 +51,9 @@ namespace RSService
         private static readonly string _cf_cipher_user_part_2 = "0.2.RunCF.CipherTextUserPart2.txt";
         #endregion
 
-        private static bool _run_phase_1 = false;
-        private static bool _run_phase_2 = false;
-        private static bool _run_phase_3 = false;
+        private static bool _run_phase_1 = true;
+        private static bool _run_phase_2 = true;
+        private static bool _run_phase_3 = true;
         private static bool _run_phase_4 = true;
         private static bool _run_export_sum = true;
 
@@ -231,11 +233,22 @@ namespace RSService
 
                 //string[] data = ReadFileInput("Data2.200.txt");
                 string[] data = ReadFileInput("Data.txt");
+                List<UserRate> rates = new List<UserRate>();
                 Parallel.ForEach(data, line =>
                 {
                     string[] values = line.Split(',');
                     Ri[int.Parse(values[0]) - 1, int.Parse(values[1]) - 1] = int.Parse(values[2]);
+                    UserRate rate = new UserRate()
+                    {
+                        user_id = (int.Parse(values[0]) - 1).ToString(),
+                        movie_id = (int.Parse(values[1]) - 1).ToString(),
+                        rate= int.Parse(values[2]),
+                    };
+                    rate.AutoId().SetMetaData();
+                    rates.Add(rate);
                 });
+
+                UserRateRepository.Instance.IndexMany(rates);
                 ConcurrentBag<string> bag_rns = new ConcurrentBag<string>();
 
                 int[,] Rns = new int[users, ns];
@@ -281,6 +294,7 @@ namespace RSService
                     sw.Start();
                     try
                     {
+                        ConcurrentBag<PharseContent> list = new ConcurrentBag<PharseContent>();
                         Parallel.For(0, users, (i) =>
                         {
                             Parallel.For(0, nk, (j) =>
@@ -291,8 +305,22 @@ namespace RSService
                                 concurrent_1.Add(string.Format("{0},{1},{2}", i, j, secret));
                                 AffinePoint pub_in_affine = EiSiPoint.ToAffine(pub);
                                 concurrent_2.Add(string.Format("{0},{1},{2}", i, j, pub_in_affine.ToString()));
+
+                                PharseContent content = new PharseContent()
+                                {
+                                    user_id = i.ToString(),
+                                    key_index = j,
+                                    secret = secret.ToString(),
+                                    point = PointPharseContent.Map(pub_in_affine),
+                                    pharse=Pharse.BUILD_SINH_KHOA_CONG_KHAI,
+                                    total_movies=muc_tin,
+                                    total_users=users,
+                                };
+                                content.AutoId().SetMetaData();
+                                list.Add(content);
                             });
                         });
+                        PharseContentRepository.Instance.IndexMany(list);
                         //for (int i = 0; i < users; i++)
                         //{
                         //    for (int j = 0; j < nk; j++)
@@ -1465,8 +1493,15 @@ namespace RSService
                 }
             }
         }
+        public static void Clear<T>(ConcurrentBag<T> concurrentBag)
+        {
+            while (!concurrentBag.IsEmpty)
+            {
+                concurrentBag.TryTake(out _);
+            }
+        }
 
-        private static string[] ReadFileAsLine(string file_name)
+        public static string[] ReadFileAsLine(string file_name)
         {
             string full_path = Path.Combine(_data_folder, file_name);
             if (File.Exists(full_path))
@@ -1476,7 +1511,7 @@ namespace RSService
             return new string[] { };
         }
 
-        private static string[] ReadFileInput(string file_name)
+        public static string[] ReadFileInput(string file_name)
         {
             string full_path = Path.Combine(_input, file_name);
             if (File.Exists(full_path))
@@ -1486,12 +1521,5 @@ namespace RSService
             return new string[] { };
         }
 
-        public static void Clear<T>(ConcurrentBag<T> concurrentBag)
-        {
-            while (!concurrentBag.IsEmpty)
-            {
-                concurrentBag.TryTake(out _);
-            }
-        }
     }
 }

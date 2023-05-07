@@ -8,4 +8,10 @@
     <ProjectReference Include="..\ECCBase16\ECCBase16.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Reference Include="XUtil">
+      <HintPath>D:\DLL\XUtil.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
 </Project>

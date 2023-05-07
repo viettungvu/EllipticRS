@@ -13,7 +13,7 @@ namespace EllipticES
     {
 
         protected static ElasticClient client;
-        protected static Uri node = new Uri(System.Configuration.ConfigurationManager.AppSettings["ES:Server"]);
+        protected static Uri node = new Uri(XMedia.XUtil.ConfigurationManager.AppSetting["ES:Server"]);
         protected static StickyConnectionPool connectionPool = new StickyConnectionPool(new[] { node });
         protected static long max_result_windown = 99999;
         protected bool Index<T>(string _defaultIndex, T data, string route, string id = "") where T : class
@@ -76,6 +76,30 @@ namespace EllipticES
                 return res.Hits.Select(x => x.Source).ToList();
             }
             return new List<T>();
+        }
+
+        protected T HitToDocument<T>(IMultiGetHit<T> hit) where T : class, new()
+        {
+            if (hit.Found)
+            {
+                var doc = hit.Source;
+
+                Type t = doc.GetType();
+                PropertyInfo piShared = t.GetProperty("id");
+                piShared.SetValue(doc, hit.Id);
+                return doc;
+            }
+            return new T();
+        }
+
+        protected T HitToDocument<T>(IHit<T> hit) where T : class
+        {
+            var doc = hit.Source;
+            Type t = doc.GetType();
+            PropertyInfo piShared = t.GetProperty("id");
+            if (piShared != null)
+                piShared.SetValue(doc, hit.Id);
+            return doc;
         }
     }
 

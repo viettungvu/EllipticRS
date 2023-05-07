@@ -9,8 +9,8 @@ namespace EllipticModels
     public class PharseContent : BaseModel
     {
         public string username { get; set; }
-        public long user_index { get; set; }
-        public long news_index { get; set; }
+        public string user_id { get; set; }
+        //public string movie_id { get; set; }
         public Pharse pharse { get; set; }
         public string secret { get; set; }
 
@@ -22,10 +22,19 @@ namespace EllipticModels
         /// </summary>
         public PointPharseContent point { get; set; }
 
+        public long user_index { get; set; }
+        public long key_index { get; set; }
 
-        public void AutoId()
+
+        public long total_users { get; set; }
+        public long total_movies { get; set; }
+        public double similary { get; set; }
+        public double rate_avg { get; set; }
+
+        public PharseContent AutoId()
         {
-            id = String.Format("{0}-{1}-{2}", user_index, news_index, (int)pharse);
+            id = String.Format("{0}-{1}-{2}", user_id, key_index, (int)pharse);
+            return this;
         }
     }
 

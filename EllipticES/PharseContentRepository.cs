@@ -10,8 +10,8 @@ namespace EllipticES
 {
     public class PharseContentRepository : IESRepository
     {
-
         private static string _default_index = "";
+        private static readonly string _prefix_index = XMedia.XUtil.ConfigurationManager.AppSetting["PrefixIndex"];
         public PharseContentRepository(string modify_index)
         {
             _default_index = !string.IsNullOrEmpty(modify_index) ? modify_index : _default_index;
@@ -31,7 +31,7 @@ namespace EllipticES
             {
                 if (_instance == null)
                 {
-                    _default_index = "rs_pharse_content";
+                    _default_index = _prefix_index + "_rs_pharse_content";
                     _instance = new PharseContentRepository(_default_index);
                 }
                 return _instance;
@@ -48,11 +48,11 @@ namespace EllipticES
             return false;
         }
 
-        public bool IndexMany(IEnumerable<PharseContent> list_user_rate)
+        public bool IndexMany(IEnumerable<PharseContent> data)
         {
-            if (list_user_rate != null)
+            if (data != null && data.Any())
             {
-                return IndexMany<PharseContent>(_default_index, list_user_rate);
+                return IndexMany<PharseContent>(_default_index, data);
             }
             return false;
         }
@@ -64,15 +64,15 @@ namespace EllipticES
             List<QueryContainer> filter = new List<QueryContainer>();
             if (!string.IsNullOrWhiteSpace(username))
             {
-                filter.Add(new TermQuery { Field = "username.keyword", Value = username });
+                filter.Add(new TermQuery { Field = "user_id.keyword", Value = username });
             }
             if (user_index > -1)
             {
-                filter.Add(new TermQuery { Field = "user_index", Value = user_index });
+                filter.Add(new TermQuery { Field = "user_id", Value = user_index });
             }
             if (news_index > -1)
             {
-                filter.Add(new TermQuery { Field = "news_index", Value = news_index });
+                filter.Add(new TermQuery { Field = "movie_id", Value = news_index });
             }
             SearchRequest req = new SearchRequest(_default_index)
             {
@@ -111,7 +111,7 @@ namespace EllipticES
             if (res.IsValid)
             {
                 total = res.Total;
-                pharse_content = res.Documents.ToList();
+                pharse_content = res.Hits.Select(HitToDocument).ToList();
             }
             return pharse_content;
         }

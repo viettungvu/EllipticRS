@@ -25,4 +25,11 @@ namespace EllipticModels
         ASC=1,
         DESC=2
     }
+
+    public enum LoaiPhim
+    {
+        ALL=0,
+        PHIM=1,
+        THE_LOAI_PHIM=2,
+    }
 }

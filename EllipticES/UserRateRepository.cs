@@ -12,6 +12,7 @@ namespace EllipticES
     {
 
         private static string _default_index = "";
+        private static string _prefix_index = XMedia.XUtil.ConfigurationManager.AppSetting["PrefixIndex"];
         public UserRateRepository(string modify_index)
         {
             _default_index = !string.IsNullOrEmpty(modify_index) ? modify_index : _default_index;
@@ -31,7 +32,7 @@ namespace EllipticES
             {
                 if (_instance == null)
                 {
-                    _default_index = "rs_user_rate";
+                    _default_index = _prefix_index + "_rs_user_rate";
                     _instance = new UserRateRepository(_default_index);
                 }
                 return _instance;
@@ -52,7 +53,7 @@ namespace EllipticES
         {
             if (list_user_rate != null)
             {
-                return IndexMany<UserRate>(_default_index, list_user_rate);
+                return IndexMany(_default_index, list_user_rate);
             }
             return false;
         }
@@ -64,15 +65,15 @@ namespace EllipticES
             List<QueryContainer> filter = new List<QueryContainer>();
             if (!string.IsNullOrWhiteSpace(username))
             {
-                filter.Add(new TermQuery { Field = "username.keyword", Value = username });
+                filter.Add(new TermQuery { Field = "user_id.keyword", Value = username });
             }
             if (user_index > -1)
             {
-                filter.Add(new TermQuery { Field = "user_index", Value = user_index });
+                filter.Add(new TermQuery { Field = "user_id", Value = user_index });
             }
             if (news_index > -1)
             {
-                filter.Add(new TermQuery { Field = "news_index", Value = news_index });
+                filter.Add(new TermQuery { Field = "movie_id", Value = news_index });
             }
             SearchRequest req = new SearchRequest(_default_index)
             {
@@ -85,7 +86,7 @@ namespace EllipticES
             if (res.IsValid)
             {
                 total = res.Total;
-                user_rates = res.Documents.ToList();
+                user_rates = res.Hits.Select(HitToDocument).ToList();
             }
             return user_rates;
         }
