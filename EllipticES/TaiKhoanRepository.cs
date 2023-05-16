@@ -89,7 +89,7 @@ namespace EllipticES
             long total = 0;
             List<QueryContainer> filter = new List<QueryContainer>()
             {
-                
+
             };
             SearchRequest req = new SearchRequest(_default_index)
             {
@@ -104,6 +104,30 @@ namespace EllipticES
                 total = (long)total_dbl;
             }
             return total;
+        }
+
+        public List<TaiKhoan> GetLastSuggestion(long last_sugguestion, int page, int page_size, out long total, string[] view_field = null)
+        {
+            total = 0;
+            List<TaiKhoan> dsach_tai_khoan = new List<TaiKhoan>();
+            List<QueryContainer> filter = new List<QueryContainer>();
+            if (last_sugguestion > 0)
+            {
+                filter.Add(new LongRangeQuery { Field = "last_suggest_time", LessThanOrEqualTo = last_sugguestion });
+            }
+            SearchRequest req = new SearchRequest(_default_index)
+            {
+                Query = new QueryContainer(new BoolQuery { Filter = filter }),
+            };
+            req.ESCustomPaging(page, page_size);
+            req.ESCustomSource(view_field);
+            var res = client.Search<TaiKhoan>(req);
+            if (res.IsValid)
+            {
+                total = res.Total;
+                dsach_tai_khoan = res.Hits.Select(HitToDocument).ToList();
+            }
+            return dsach_tai_khoan;
         }
     }
 }

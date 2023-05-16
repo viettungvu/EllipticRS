@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Numerics;
 using System.Threading.Tasks;
 using ECCBase16;
 using EllipticES;
@@ -17,6 +18,7 @@ namespace ServiceBuildRS
     public class RSUtilsMayChuGoiY
     {
         private static Curve _curve = new ECCBase16.Curve(ECCBase16.CurveName.secp160k1);
+        private static readonly EiSiPoint G = AffinePoint.ToEiSiPoint(_curve.G);
         private const int _max = 5;
         private static readonly log4net.ILog _logger = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
         private static readonly string _url_web_server = XMedia.XUtil.ConfigurationManager.AppSetting["UrlWebServer"];
@@ -213,6 +215,7 @@ namespace ServiceBuildRS
                             {
                                 Aj[aj.key_index] = PointPharseContent.ToAffinePoint(aj.point, _curve);
                             });
+
                             int[] data_loga = _brfStandard(Aj, ns, _max * _max * users);
                             WriteFile(_get_sum_encrypt, string.Join(";", data_loga), false);
                             List<PharseContent> similary = _calculateSimilary(data_loga, movies);
@@ -311,7 +314,7 @@ namespace ServiceBuildRS
                         bag_round.Add(string.Format("{0},{1},{2}", j, k, (int)(sim[j, k] * 100)));
                         PharseContent pharse = new PharseContent()
                         {
-                            user_id=j.ToString(),
+                            user_id = j.ToString(),
                             user_index = j,
                             key_index = k,
                             similary = sim[j, k],
@@ -374,6 +377,67 @@ namespace ServiceBuildRS
             while (!concurrentBag.IsEmpty)
             {
                 concurrentBag.TryTake(out _);
+            }
+        }
+
+
+        public static async Task SinhGoiY()
+        {
+            List<PharseContent> similar = PharseContentRepository.Instance.GetByPharse(Pharse.CALCULATE_SIMILAR, out _);
+
+            List<PharseContent> ciphers = PharseContentRepository.Instance.GetByPharse(Pharse.SUGGEST_MA_HOA_VECTOR, out _);
+
+            List<PharseContent> pharse_2 = new List<PharseContent>();
+            var group_by_user = ciphers.GroupBy(x => x.user_id);
+            foreach (var group in group_by_user)
+            {
+                EiSiPoint Xi = PointPharseContent.ToEiSiPoint(group.FirstOrDefault().Xi, _curve);
+
+                List<PharseContent> cipher_ordered = group.OrderBy(x => x.key_index).ToList();
+                long movie_count = cipher_ordered.Count();
+                EiSiPoint[] f1 = new EiSiPoint[movie_count];
+                EiSiPoint[] f2 = new EiSiPoint[movie_count];
+                EiSiPoint[] f3 = new EiSiPoint[movie_count];
+                BigInteger c = Numerics.RandomBetween(1, _curve.N - 1);
+                EiSiPoint f4 = EiSiPoint.Base16Multiplicands(c, G);
+                for (int k = 0; k < movie_count; k++)
+                {
+                    EiSiPoint sum_f1 = EiSiPoint.InfinityPoint;
+                    EiSiPoint sum_f2 = EiSiPoint.InfinityPoint;
+                    EiSiPoint sum_f3 = EiSiPoint.InfinityPoint;
+                    for (int j = k + 1; j < movie_count; j++)
+                    {
+                        PharseContent sim = similar.Find(x => x.user_index == k && x.key_index == j);
+                        int sim_round = sim != null ? (int)(sim.similary * 100) : 0;
+                        PharseContent cipher = cipher_ordered.Find(x => x.key_index == j);
+                        if (cipher != null)
+                        {
+                            sum_f1 = EiSiPoint.Addition(sum_f1, EiSiPoint.Base16Multiplicands(sim_round, PointPharseContent.ToEiSiPoint(cipher.point, _curve)));
+                            sum_f2 = EiSiPoint.Addition(sum_f2, EiSiPoint.Base16Multiplicands(sim_round, PointPharseContent.ToEiSiPoint(cipher.point_2, _curve)));
+                            sum_f3 = EiSiPoint.Addition(sum_f3, EiSiPoint.Base16Multiplicands(sim_round, G));
+                        }
+                    }
+                    f1[k] = sum_f1;
+                    f2[k] = sum_f2;
+                    f3[k] = EiSiPoint.Addition(sum_f3, EiSiPoint.Base16Multiplicands(c, Xi));
+
+                    PharseContent ma_hoa_tuong_tu = new PharseContent
+                    {
+                        pharse = Pharse.SUGGEST_MA_HOA_DO_TUONG_TU,
+                        point = PointPharseContent.Map(EiSiPoint.ToAffine(sum_f1)),
+                        point_2 = PointPharseContent.Map(EiSiPoint.ToAffine(sum_f1)),
+                        point_3 = PointPharseContent.Map(EiSiPoint.ToAffine(f3[k])),
+                        point_4 = PointPharseContent.Map(EiSiPoint.ToAffine(f4)),
+                        key_index = k,
+                        user_id = group.Key,
+                    };
+                    ma_hoa_tuong_tu.AutoId().SetMetaData();
+                    pharse_2.Add(ma_hoa_tuong_tu);
+                }
+            }
+            if (pharse_2.Any())
+            {
+                await _sendRequest(_url_api_receive, pharse_2);
             }
         }
     }

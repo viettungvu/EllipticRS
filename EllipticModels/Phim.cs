@@ -12,7 +12,6 @@ namespace EllipticModels
 
         public LoaiPhim loai { get; set; }
         public List<string> genre_ids { get; set; } = new List<string>();
-
         public MediaType media_type { get; set; }
         public string poster_path { get; set; }
         public string backdrop_path { get; set; }

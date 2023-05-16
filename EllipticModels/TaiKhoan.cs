@@ -9,8 +9,8 @@ namespace EllipticModels
         public string username { get; set; }
 
         public string password { get; set; }
-
-        public long index { get; set; }
-        public List<string> id_movie_goi_y { get; set; } = new List<string>();
+        public List<string> suggest_movie_id { get; set; } = new List<string>();
+        public long last_suggest_time { get; set; }
+        public string prv_key { get; set; }
     }
 }

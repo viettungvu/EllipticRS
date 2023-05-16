@@ -169,10 +169,10 @@ namespace FormTest
             _sw.Start();
             try
             {
-                ReSysUtils.RunEiSi("D:\\Test\\OutputEisiFull");
+                //ReSysUtils.RunEiSi("D:\\Test\\OutputEisiFull");
                 //ReSysUtils.RunJacobian("D:\\Test\\OutputJacobian");
                 //ReSysUtils.RunStandard("D:\\Test\\OutputStandard");
-                //ReSysUtils.RunCF();
+                ReSysUtils.RunCFB();
             }
             catch (Exception ex)
             {
@@ -329,7 +329,7 @@ namespace FormTest
                             {
                                 row_data[i] = cells[i].Value.ToString();
                             }
-                            
+
                             Phim phim = new Phim()
                             {
                                 id = movie_id.ToString(),// row_data[0].ToString(),
@@ -475,7 +475,7 @@ namespace FormTest
             //        }
             //    }
             //}
-           string[] data = ReSysUtils.ReadFileInput("Data.txt");
+            string[] data = ReSysUtils.ReadFileInput("Data.txt");
             List<UserRate> rates = new List<UserRate>();
             Parallel.ForEach(data, line =>
             {
@@ -483,8 +483,8 @@ namespace FormTest
                 UserRate rate = new UserRate()
                 {
                     user_id = (int.Parse(values[0]) - 1).ToString(),
-                    movie_id= (int.Parse(values[1]) - 1).ToString(),
-                    rate= int.Parse(values[2])
+                    movie_id = (int.Parse(values[1]) - 1).ToString(),
+                    rate = int.Parse(values[2])
                 };
                 rate.AutoId().SetMetaData();
                 rates.Add(rate);
@@ -499,10 +499,9 @@ namespace FormTest
             {
                 TaiKhoan tk = new TaiKhoan()
                 {
-                    username = "" + i,
+                    username = i.ToString(),
                     password = "user" + i,
-                    index = i,
-                    id = "" + i
+                    id = i.ToString()
                 };
                 tk.SetMetaData();
                 bag.Add(tk);

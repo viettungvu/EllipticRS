@@ -29,12 +29,13 @@ namespace ServiceMayChuWeb
         private async void _timer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
         {
             //await RecommendUtils.XayDungHeGoiY();
-            await RSUtilsMayChuWeb.XayDungHeGoiY();
+            await RSUtilsMayChuWeb.SinhGoiY();
         }
 
-        private void button1_Click(object sender, EventArgs e)
+        private async void button1_Click(object sender, EventArgs e)
         {
-            _timer.Start();
+            await RSUtilsMayChuWeb.SinhGoiY();
+            //_timer.Start();
         }
     }
 }

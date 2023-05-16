@@ -369,8 +369,6 @@ namespace ServiceMayChuWeb
                 #endregion
             }
         }
-
-
         private static async Task _postRequest(string uri, object send_data)
         {
             if (!string.IsNullOrWhiteSpace(uri))
@@ -388,10 +386,6 @@ namespace ServiceMayChuWeb
                 }
             }
         }
-
-
-
-
 
         private static void WriteFile(string file_name, string content, bool append = true)
         {
@@ -420,5 +414,120 @@ namespace ServiceMayChuWeb
                 concurrentBag.TryTake(out _);
             }
         }
+
+
+        private static bool _is_running_suggest = false;
+        public static async Task SinhGoiY()
+        {
+            if (!_is_running_suggest)
+            {
+                try
+                {
+                    _is_running_suggest = true;
+                    long movies = 0;
+                    long last_sugg = XMedia.XUtil.TimeInEpoch(DateTime.Now.Subtract(TimeSpan.FromHours(5)));
+                    List<TaiKhoan> dsach_tai_khoan = TaiKhoanRepository.Instance.GetLastSuggestion(last_sugg, 1, 99999, out _, new string[] { "username" });
+                    IEnumerable<string> dsach_usernames = dsach_tai_khoan.Select(x => x.username);
+                    EiSiPoint G = AffinePoint.ToEiSiPoint(_curve.G);
+                    Dictionary<string, EiSiPoint> user_public_keys = new Dictionary<string, EiSiPoint>();
+
+
+                    List<UserRate> user_rates = UserRateRepository.Instance.GetUserRate(dsach_tai_khoan.Select(x => x.username));
+                    List<Phim> dsach_movies = PhimRepository.Instance.GetAll(out movies, 1, 99999, new string[] { "id", "index" });
+                    IEnumerable<string> dsach_movie_id = dsach_movies.Select(x => x.id);
+                    foreach (TaiKhoan tk in dsach_tai_khoan)
+                    {
+                        if (!BigInteger.TryParse(tk.prv_key, out BigInteger xi))
+                        {
+                            xi = Numerics.RandomBetween(1, _curve.N - 1);
+                        }
+                        EiSiPoint pub = EiSiPoint.Base16Multiplicands(xi, G);
+                        user_public_keys.Add(tk.id, pub);
+                    }
+
+                    ConcurrentTwoKeysDictionary<string, string, int> dic_users_rate = new ConcurrentTwoKeysDictionary<string, string, int>();
+                    var group_by_user = user_rates.GroupBy(x => x.user_id);
+                    foreach (var group in group_by_user)
+                    {
+                        IEnumerable<string> dsach_movie_id_rated = group.Select(x => x.movie_id);
+                        foreach (var item in group)
+                        {
+                            dic_users_rate.Add(group.Key, item.movie_id, item.rate);
+                        }
+                        IEnumerable<string> dsach_movie_id_unrate = dsach_movie_id.Except(dsach_movie_id_rated);
+                        foreach (var movie_id in dsach_movie_id_unrate)
+                        {
+                            dic_users_rate.Add(group.Key, movie_id, 0);
+                        }
+                    }
+
+                    List<PharseContent> pharse_ma_hoa = new List<PharseContent>();
+
+                    foreach (var user_key in user_public_keys)
+                    {
+                        if (dic_users_rate.TryGetValue(user_key.Key, out ConcurrentDictionary<string, int> user_rate))
+                        {
+                            AffinePoint Xi = EiSiPoint.ToAffine(user_key.Value);
+                            long key_index = 0;
+                            foreach (var movie_rate in user_rate)
+                            {
+                                BigInteger cj = ECCBase16.Numerics.RandomBetween(1, _curve.N - 1);
+                                EiSiPoint p1 = EiSiPoint.Base16Multiplicands(movie_rate.Value, G);
+                                EiSiPoint p2 = EiSiPoint.Base16Multiplicands(cj, user_key.Value);
+                                EiSiPoint C1j = EiSiPoint.Addition(p1, p2);
+                                EiSiPoint C2j = EiSiPoint.Base16Multiplicands(cj, G);
+
+                                AffinePoint C1j_affine = EiSiPoint.ToAffine(C1j);
+                                AffinePoint C2j_affine = EiSiPoint.ToAffine(C2j);
+
+                                PharseContent pharse = new PharseContent()
+                                {
+                                    user_id = user_key.Key,
+                                    point = PointPharseContent.Map(C1j_affine),
+                                    point_2 = PointPharseContent.Map(C2j_affine),
+                                    movie_id = movie_rate.Key,
+                                    pharse = Pharse.SUGGEST_MA_HOA_VECTOR,
+                                    Xi = PointPharseContent.Map(Xi),
+                                    key_index=key_index,
+                                };
+                                pharse.AutoId().SetMetaData();
+                                pharse_ma_hoa.Add(pharse);
+                                key_index += 1;
+                            }
+                        }
+                    }
+                    if (pharse_ma_hoa.Any())
+                    {
+                        PharseContentRepository.Instance.IndexMany(pharse_ma_hoa);
+                        IEnumerable<object> send_data = pharse_ma_hoa.Select(x => new
+                        {
+                            x.user_id,
+                            x.total_movies,
+                            x.total_users,
+                            x.user_index,
+                            x.key_index,
+                            x.point,
+                            x.point_2,
+                            x.pharse,
+                            x.id,
+                            x.Xi,
+                        });
+                        if (send_data != null && send_data.Any())
+                        {
+                            await _postRequest(_url_api_receive, send_data);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+
+                    throw;
+                }
+                
+                
+                _is_running_suggest = false;
+            }
+        }
+
     }
 }

@@ -10,7 +10,7 @@ namespace EllipticModels
     {
         public string username { get; set; }
         public string user_id { get; set; }
-        //public string movie_id { get; set; }
+        public string movie_id { get; set; }
         public Pharse pharse { get; set; }
         public string secret { get; set; }
 
@@ -21,6 +21,15 @@ namespace EllipticModels
         /// Pharse4: Point is Sum Encrypt Security
         /// </summary>
         public PointPharseContent point { get; set; }
+
+        /// <summary>
+        /// Ở Pha Mã hóa sinh gợi ý, point 2 là phần 2 của bãn mã
+        /// </summary>
+        public PointPharseContent point_2 { get; set; }
+        public PointPharseContent point_3 { get; set; }
+        public PointPharseContent point_4 { get; set; }
+
+        public PointPharseContent Xi { get; set; }
 
         public long user_index { get; set; }
         public long key_index { get; set; }

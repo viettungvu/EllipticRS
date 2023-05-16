@@ -90,5 +90,28 @@ namespace EllipticES
             }
             return user_rates;
         }
+
+        public List<UserRate> GetUserRate(IEnumerable<string> usernames, string[] view_field = null)
+        {
+            List<UserRate> user_rates = new List<UserRate>();
+            List<QueryContainer> filter = new List<QueryContainer>();
+            if (usernames != null && usernames.Any())
+            {
+                filter.Add(new TermsQuery { Field = "user_id.keyword", Terms = usernames });
+            }
+            SearchRequest req = new SearchRequest(_default_index)
+            {
+                Query = new QueryContainer(new BoolQuery { Filter = filter }),
+
+            };
+            req.ESCustomPaging(1, 99999);
+            req.ESCustomSource(view_field);
+            var res = client.Search<UserRate>(req);
+            if (res.IsValid)
+            {
+                user_rates = res.Hits.Select(HitToDocument).ToList();
+            }
+            return user_rates;
+        }
     }
 }

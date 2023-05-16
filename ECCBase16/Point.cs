@@ -416,11 +416,11 @@ namespace ECCBase16
 
         public static EiSiPoint Addition(EiSiPoint point1, EiSiPoint point2)
         {
-            if (point1.IsInfinity())
+            if (point1 is null|| point1.IsInfinity())
             {
                 return point2;
             }
-            else if (point2.IsInfinity())
+            else if (point2 is null|| point2.IsInfinity())
             {
                 return point1;
             }
@@ -554,6 +554,10 @@ namespace ECCBase16
             else if (scalar == 2)
             {
                 result = Doubling(point);
+            }
+            else if (scalar < 0 || scalar > point.Curve.N)
+            {
+                result = Multiply(Numerics.Modulo(scalar, point.Curve.N), point);
             }
             else if (scalar.IsEven)
             {

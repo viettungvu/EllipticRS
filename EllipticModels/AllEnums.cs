@@ -17,6 +17,7 @@ namespace EllipticModels
         SUGGEST_DU_DOAN_XEP_HANG = 7,
 
         CALCULATE_SIMILAR=8,
+        SEND_PUBLIC_KEY=9,
     }
 
     public enum CustomSort

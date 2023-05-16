@@ -29,12 +29,13 @@ namespace ServiceBuildRS
         private async void _timer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
         {
             //await RecommendUtils.XayDungHeGoiY();
-            await RSUtilsMayChuGoiY.XayDungHeGoiY();
+            await RSUtilsMayChuGoiY.SinhGoiY();
         }
 
-        private void button1_Click(object sender, EventArgs e)
+        private async void button1_Click(object sender, EventArgs e)
         {
-            _timer.Start();
+            await RSUtilsMayChuGoiY.SinhGoiY();
+            //_timer.Start();
         }
     }
 }
