@@ -599,186 +599,209 @@ namespace RSService
 
         public static void RunCF()
         {
-            EiSiPoint G = AffinePoint.ToEiSiPoint(_curve.G);
-            ConcurrentBag<string> concurrent_1 = new ConcurrentBag<string>();
-            ConcurrentBag<string> concurrent_2 = new ConcurrentBag<string>();
-            ConcurrentBag<string> concurrent_3 = new ConcurrentBag<string>();
-            ConcurrentBag<string> concurrent_4 = new ConcurrentBag<string>();
-
-
-            #region Pha 1:User target tạo khóa bí mật và khóa công khai 
-            BigInteger xi = ECCBase16.Numerics.RandomBetween(1, _curve.N - 1);
-            AffinePoint Xi = EiSiPoint.ToAffine(EiSiPoint.Base16Multiplicands(xi, G));
-
-
-            #endregion
-
-
-            #region Pha 2: User target mã hóa xếp hạng
-            string[] str_rate_avg = ReadFileAsLine(_rate_avg);
-            int[] rate_round_avg = new int[muc_tin];
-
-            Parallel.ForEach(str_rate_avg, line =>
+            try
             {
-                string[] values = line.Split(',');
-                double.TryParse(values[1], out double rate_avg);
-                int avg_rounded = (int)(rate_avg * 100);
-                rate_round_avg[int.Parse(values[0])] = avg_rounded;
-            });
+                EiSiPoint G = AffinePoint.ToEiSiPoint(_curve.G);
+                ConcurrentBag<string> concurrent_1 = new ConcurrentBag<string>();
+                ConcurrentBag<string> concurrent_2 = new ConcurrentBag<string>();
+                ConcurrentBag<string> concurrent_3 = new ConcurrentBag<string>();
+                ConcurrentBag<string> concurrent_4 = new ConcurrentBag<string>();
 
 
-            string[] data = ReadFileInput("Data.txt");
-            int[,] Ri = new int[users, muc_tin];
-            Parallel.ForEach(data, line =>
-            {
-                string[] values = line.Split(',');
-                Ri[int.Parse(values[0]) - 1, int.Parse(values[1]) - 1] = int.Parse(values[2]);
-            });
-            for (int j = 0; j < muc_tin; j++)
-            {
-                BigInteger cj = ECCBase16.Numerics.RandomBetween(1, _curve.N - 1);
-                EiSiPoint p1 = EiSiPoint.Base16Multiplicands(Ri[0, j] * 100, G);
-                EiSiPoint p2 = EiSiPoint.Base16Multiplicands(cj, AffinePoint.ToEiSiPoint(Xi));
-                EiSiPoint C1j = EiSiPoint.Addition(p1, p2);
-                EiSiPoint C2j = EiSiPoint.Base16Multiplicands(cj, G);
+                #region Pha 1:User target tạo khóa bí mật và khóa công khai 
+                BigInteger xi = ECCBase16.Numerics.RandomBetween(1, _curve.N - 1);
+                AffinePoint Xi = EiSiPoint.ToAffine(EiSiPoint.Base16Multiplicands(xi, G));
 
-                AffinePoint C1j_affine = EiSiPoint.ToAffine(C1j);
-                AffinePoint C2j_affine = EiSiPoint.ToAffine(C2j);
 
-                concurrent_1.Add(string.Format("{0},{1}", j, C1j_affine.ToString()));
-                concurrent_2.Add(string.Format("{0},{1}", j, C2j_affine.ToString()));
+                #endregion
+
+
+                #region Pha 2: User target mã hóa xếp hạng
+                string[] str_rate_avg = ReadFileAsLine(_rate_avg);
+                int[] rate_round_avg = new int[muc_tin];
+
+                Parallel.ForEach(str_rate_avg, line =>
+                {
+                    string[] values = line.Split(',');
+                    double.TryParse(values[1], out double rate_avg);
+                    int avg_rounded = (int)(rate_avg * 10);
+                    rate_round_avg[int.Parse(values[0])] = avg_rounded;
+                });
+
+
+                string[] data = ReadFileInput("Data.txt");
+                int[,] Ri = new int[users, muc_tin];
+                Parallel.ForEach(data, line =>
+                {
+                    string[] values = line.Split(',');
+                    Ri[int.Parse(values[0]) - 1, int.Parse(values[1]) - 1] = int.Parse(values[2]);
+                });
+                for (int j = 0; j < muc_tin; j++)
+                {
+                    BigInteger cj = ECCBase16.Numerics.RandomBetween(1, _curve.N - 1);
+                    EiSiPoint p1 = EiSiPoint.Base16Multiplicands(Ri[0, j] * 10, G);
+                    EiSiPoint p2 = EiSiPoint.Base16Multiplicands(cj, AffinePoint.ToEiSiPoint(Xi));
+                    EiSiPoint C1j = EiSiPoint.Addition(p1, p2);
+                    EiSiPoint C2j = EiSiPoint.Base16Multiplicands(cj, G);
+
+                    AffinePoint C1j_affine = EiSiPoint.ToAffine(C1j);
+                    AffinePoint C2j_affine = EiSiPoint.ToAffine(C2j);
+
+                    concurrent_1.Add(string.Format("{0},{1}", j, C1j_affine.ToString()));
+                    concurrent_2.Add(string.Format("{0},{1}", j, C2j_affine.ToString()));
+                }
+                WriteFile(_cf_cipher_user_part_1, string.Join(Environment.NewLine, concurrent_1), false);
+                WriteFile(_cf_cipher_user_part_2, string.Join(Environment.NewLine, concurrent_2), false);
+                Clear(concurrent_1);
+                Clear(concurrent_2);
+                #endregion
+
+                #region Pha 2:
+                string[] str_sim_round = ReadFileAsLine(_sim_round);
+                int[,] sim_rounded = new int[muc_tin, muc_tin];
+                Parallel.ForEach(str_sim_round, line =>
+                {
+                    string[] values = line.Split(',');
+                    sim_rounded[int.Parse(values[0]), int.Parse(values[1])] = int.Parse(values[2]);
+                });
+
+
+
+                EiSiPoint[] ctext_part_1 = new EiSiPoint[muc_tin];
+                EiSiPoint[] ctext_part_2 = new EiSiPoint[muc_tin];
+
+                string[] data_part_1 = ReadFileAsLine(_cf_cipher_user_part_1);
+
+                Parallel.ForEach(data_part_1, line =>
+                {
+                    string[] values = line.Split(',');
+                    ctext_part_1[int.Parse(values[0])] = new EiSiPoint(BigInteger.Parse(values[1]), BigInteger.Parse(values[2]), 1, _curve);
+                });
+                string[] data_part_2 = ReadFileAsLine(_cf_cipher_user_part_2);
+                Parallel.ForEach(data_part_2, line =>
+                {
+                    string[] values = line.Split(',');
+                    ctext_part_2[int.Parse(values[0])] = new EiSiPoint(BigInteger.Parse(values[1]), BigInteger.Parse(values[2]), 1, _curve);
+                });
+
+
+                BigInteger c1 = ECCBase16.Numerics.RandomBetween(1, _curve.N - 1);
+
+                EiSiPoint[] f9 = new EiSiPoint[muc_tin];
+                EiSiPoint[] f10 = new EiSiPoint[muc_tin];
+                EiSiPoint[] f11 = new EiSiPoint[muc_tin];
+
+                for (int k = 0; k < muc_tin; k++)
+                {
+                    EiSiPoint sum5 = EiSiPoint.InfinityPoint;
+                    BigInteger c2 = ECCBase16.Numerics.RandomBetween(1, _curve.N - 1);
+                    BigInteger c3 = ECCBase16.Numerics.RandomBetween(1, _curve.N - 1);
+                    for (int j = k ; j < muc_tin; j++)
+                    {
+                        EiSiPoint skj_g = EiSiPoint.Base16Multiplicands(sim_rounded[k, j], G);
+                        sum5 = EiSiPoint.Addition(sum5, skj_g);
+                    }
+                    EiSiPoint f5k = EiSiPoint.Addition(EiSiPoint.Multiply(rate_round_avg[k], sum5), EiSiPoint.Base16Multiplicands(c2, AffinePoint.ToEiSiPoint(Xi)));
+                    EiSiPoint f6k = EiSiPoint.Base16Multiplicands(c2, G);
+                    EiSiPoint f7k = EiSiPoint.Addition(EiSiPoint.Multiply(rate_round_avg[k], G), EiSiPoint.Base16Multiplicands(c3, AffinePoint.ToEiSiPoint(Xi)));
+                    EiSiPoint f8k = EiSiPoint.Base16Multiplicands(c3, G);
+
+
+                    EiSiPoint sum_f9k = EiSiPoint.InfinityPoint;
+                    for (int j = k; j < muc_tin; j++)
+                    {
+                        EiSiPoint p = EiSiPoint.Multiply(sim_rounded[k, j], EiSiPoint.Subtract(ctext_part_1[j], f7k));
+                        sum_f9k = EiSiPoint.Addition(sum_f9k, p);
+                    }
+
+                    f9[k] = EiSiPoint.Addition(f5k, sum_f9k);
+
+                    EiSiPoint sum_f10k = EiSiPoint.InfinityPoint;
+                    for (int j = k ; j < muc_tin; j++)
+                    {
+                        EiSiPoint p = EiSiPoint.Multiply(sim_rounded[k, j], EiSiPoint.Subtract(ctext_part_2[j], f8k));
+                        sum_f10k = EiSiPoint.Addition(sum_f10k, p);
+                    }
+                    f10[k] = EiSiPoint.Addition(f6k, sum_f10k);
+
+                    EiSiPoint sum_f11 = EiSiPoint.InfinityPoint;
+                    for (int j = k; j < muc_tin; j++)
+                    {
+                        EiSiPoint p = EiSiPoint.Multiply(sim_rounded[k, j], G);
+                        sum_f11 = EiSiPoint.Addition(sum_f11, p);
+                    }
+
+                    f11[k] = EiSiPoint.Addition(EiSiPoint.Base16Multiplicands(c1, AffinePoint.ToEiSiPoint(Xi)), sum_f11);
+                }
+                EiSiPoint f12 = EiSiPoint.Base16Multiplicands(c1, G);
+
+                //test
+                AffinePoint[] testC6 = new AffinePoint[muc_tin];
+                for (int k = 0; k < muc_tin; k++)
+                {
+                    int sum = 0;
+                    for (int j = k; j < muc_tin; j++)
+                    {
+                        sum += sim_rounded[k, j];
+                    }
+                    EiSiPoint tmp = EiSiPoint.Base16Multiplicands(sum, G);
+                    testC6[k] = EiSiPoint.ToAffine(tmp);
+                }
+
+                AffinePoint[] testck6 = new AffinePoint[muc_tin];
+                for (int k = 0; k < muc_tin; k++)
+                {
+                    int sum1 = 0;
+                    int sum2 = 0;
+                    for (int j = k; j < muc_tin; j++)
+                    {
+                        sum1 += sim_rounded[k, j];
+                        sum2 += (Ri[0, j] * 10 - rate_round_avg[j]) * sim_rounded[k, j];
+                    }
+                    EiSiPoint tmp = EiSiPoint.Base16Multiplicands(sum1 * rate_round_avg[k] + sum2, G);
+                    testck6[k] = EiSiPoint.ToAffine(tmp);
+                }
+
+
+
+
+                ///Pharse 3
+                ///
+                Parallel.For(0, muc_tin, (k) =>
+                {
+                    EiSiPoint Ck = EiSiPoint.Subtract(f9[k], EiSiPoint.Base16Multiplicands(xi, f10[k]));
+                    EiSiPoint C6 = EiSiPoint.Subtract(f11[k], EiSiPoint.Base16Multiplicands(xi, f12));
+
+
+                    AffinePoint tmp_c6 = EiSiPoint.ToAffine(C6);
+                    AffinePoint tmp_ck = EiSiPoint.ToAffine(Ck);
+                    long d = Logarit(tmp_c6);
+
+                    long dk = Logarit(tmp_ck);
+                    concurrent_1.Add(String.Format("{0},{1},{2},{3},{4}", 0, k, dk, d, (double)dk / d));
+                });
+                //for (int k = 0; k < muc_tin ; k++)
+                //{
+                //    EiSiPoint Ck = EiSiPoint.Subtract(f9[k], EiSiPoint.Base16Multiplicands(xi, f10[k]));
+                //    EiSiPoint C6 = EiSiPoint.Subtract(f11[k], EiSiPoint.Base16Multiplicands(xi, f12));
+
+
+                //    AffinePoint tmp_c6 = EiSiPoint.ToAffine(C6);
+                //    AffinePoint tmp_ck = EiSiPoint.ToAffine(Ck);
+                //    long d = Logarit(tmp_c6);
+
+                //    long dk = Logarit(tmp_ck);
+                //    concurrent_1.Add(String.Format("{0},{1},{2},{3},{4}", 0, k, dk, d, (double)dk / d));
+                //}
+                WriteFile("1.3.pik.txt", string.Join(Environment.NewLine, concurrent_1), false);
+                #endregion
             }
-            WriteFile(_cf_cipher_user_part_1, string.Join(Environment.NewLine, concurrent_1), false);
-            WriteFile(_cf_cipher_user_part_2, string.Join(Environment.NewLine, concurrent_2), false);
-            Clear(concurrent_1);
-            Clear(concurrent_2);
-            #endregion
-
-            #region Pha 2:
-            string[] str_sim_round = ReadFileAsLine(_sim_round);
-            int[,] sim_rounded = new int[muc_tin, muc_tin];
-            Parallel.ForEach(str_sim_round, line =>
+            catch (Exception ex)
             {
-                string[] values = line.Split(',');
-                sim_rounded[int.Parse(values[0]), int.Parse(values[1])] = int.Parse(values[2]);
-            });
 
-
-
-            EiSiPoint[] ctext_part_1 = new EiSiPoint[muc_tin];
-            EiSiPoint[] ctext_part_2 = new EiSiPoint[muc_tin];
-
-            string[] data_part_1 = ReadFileAsLine(_cf_cipher_user_part_1);
-
-            Parallel.ForEach(data_part_1, line =>
-            {
-                string[] values = line.Split(',');
-                ctext_part_1[int.Parse(values[0])] = new EiSiPoint(BigInteger.Parse(values[1]), BigInteger.Parse(values[2]), 1, _curve);
-            });
-            string[] data_part_2 = ReadFileAsLine(_cf_cipher_user_part_2);
-            Parallel.ForEach(data_part_2, line =>
-            {
-                string[] values = line.Split(',');
-                ctext_part_2[int.Parse(values[0])] = new EiSiPoint(BigInteger.Parse(values[1]), BigInteger.Parse(values[2]), 1, _curve);
-            });
-
-
-            BigInteger c1 = ECCBase16.Numerics.RandomBetween(1, _curve.N - 1);
-
-            EiSiPoint[] f9 = new EiSiPoint[muc_tin];
-            EiSiPoint[] f10 = new EiSiPoint[muc_tin];
-            EiSiPoint[] f11 = new EiSiPoint[muc_tin];
-
-            for (int k = 0; k < muc_tin - 1; k++)
-            {
-                EiSiPoint sum5 = EiSiPoint.InfinityPoint;
-                BigInteger c2 = ECCBase16.Numerics.RandomBetween(1, _curve.N - 1);
-                BigInteger c3 = ECCBase16.Numerics.RandomBetween(1, _curve.N - 1);
-                for (int j = k + 1; j < muc_tin; j++)
-                {
-                    EiSiPoint skj_g = EiSiPoint.Base16Multiplicands(sim_rounded[k, j], G);
-                    sum5 = EiSiPoint.Addition(sum5, skj_g);
-                }
-                EiSiPoint f5k = EiSiPoint.Addition(EiSiPoint.Multiply(rate_round_avg[k], sum5), EiSiPoint.Base16Multiplicands(c2, AffinePoint.ToEiSiPoint(Xi)));
-                EiSiPoint f6k = EiSiPoint.Base16Multiplicands(c2, G);
-                EiSiPoint f7k = EiSiPoint.Addition(EiSiPoint.Multiply(rate_round_avg[k], G), EiSiPoint.Base16Multiplicands(c3, AffinePoint.ToEiSiPoint(Xi)));
-                EiSiPoint f8k = EiSiPoint.Base16Multiplicands(c3, G);
-
-
-                EiSiPoint sum_f9k = EiSiPoint.InfinityPoint;
-                for (int j = k + 1; j < muc_tin; j++)
-                {
-                    EiSiPoint p = EiSiPoint.Multiply(sim_rounded[k, j], EiSiPoint.Subtract(ctext_part_1[j], f7k));
-                    sum_f9k = EiSiPoint.Addition(sum_f9k, p);
-                }
-
-                f9[k] = EiSiPoint.Addition(f5k, sum_f9k);
-
-                EiSiPoint sum_f10k = EiSiPoint.InfinityPoint;
-                for (int j = k + 1; j < muc_tin; j++)
-                {
-                    EiSiPoint p = EiSiPoint.Multiply(sim_rounded[k, j], EiSiPoint.Subtract(ctext_part_2[j], f8k));
-                    sum_f10k = EiSiPoint.Addition(sum_f10k, p);
-                }
-                f10[k] = EiSiPoint.Addition(f6k, sum_f10k);
-
-                EiSiPoint sum_f11 = EiSiPoint.InfinityPoint;
-                for (int j = k + 1; j < muc_tin; j++)
-                {
-                    EiSiPoint p = EiSiPoint.Multiply(sim_rounded[k, j], G);
-                    sum_f11 = EiSiPoint.Addition(sum_f11, p);
-                }
-
-                f11[k] = EiSiPoint.Addition(EiSiPoint.Base16Multiplicands(c1, AffinePoint.ToEiSiPoint(Xi)), sum_f11);
+                throw;
             }
-            EiSiPoint f12 = EiSiPoint.Base16Multiplicands(c1, G);
-
-            //test
-            AffinePoint[] testC6 = new AffinePoint[muc_tin - 1];
-            for (int k = 0; k < muc_tin - 1; k++)
-            {
-                int sum = 0;
-                for (int j = k + 1; j < muc_tin; j++)
-                {
-                    sum += sim_rounded[k, j];
-                }
-                EiSiPoint tmp = EiSiPoint.Base16Multiplicands(sum, G);
-                testC6[k] = EiSiPoint.ToAffine(tmp);
-            }
-
-            AffinePoint[] testck6 = new AffinePoint[muc_tin - 1];
-            for (int k = 0; k < muc_tin - 1; k++)
-            {
-                int sum1 = 0;
-                int sum2 = 0;
-                for (int j = k + 1; j < muc_tin; j++)
-                {
-                    sum1 += sim_rounded[k, j];
-                    sum2 += (Ri[0, j] * 100 - rate_round_avg[j]) * sim_rounded[k, j];
-                }
-                EiSiPoint tmp = EiSiPoint.Base16Multiplicands(sum1 * rate_round_avg[k] + sum2, G);
-                testck6[k] = EiSiPoint.ToAffine(tmp);
-            }
-
-
-
-
-            ///Pharse 3
-            for (int k = 0; k < muc_tin - 1; k++)
-            {
-                EiSiPoint Ck = EiSiPoint.Subtract(f9[k], EiSiPoint.Base16Multiplicands(xi, f10[k]));
-                EiSiPoint C6 = EiSiPoint.Subtract(f11[k], EiSiPoint.Base16Multiplicands(xi, f12));
-
-
-                AffinePoint tmp_c6 = EiSiPoint.ToAffine(C6);
-                AffinePoint tmp_ck = EiSiPoint.ToAffine(Ck);
-                long d = Logarit(tmp_c6);
-
-                long dk = Logarit(tmp_ck);
-                concurrent_1.Add(String.Format("{0},{1},{2},{3},{4}", 0, k, dk, d, (double)dk / d));
-            }
-            WriteFile("1.3.pik.txt", string.Join(Environment.NewLine, concurrent_1), false);
-            #endregion
+            
         }
 
 
@@ -813,7 +836,7 @@ namespace RSService
             for (int j = 0; j < muc_tin; j++)
             {
                 BigInteger cj = ECCBase16.Numerics.RandomBetween(1, _curve.N - 1);
-                EiSiPoint p1 = EiSiPoint.Base16Multiplicands(Ri[0, j] * 100, G);
+                EiSiPoint p1 = EiSiPoint.Base16Multiplicands(Ri[0, j] * 10, G);
                 EiSiPoint p2 = EiSiPoint.Base16Multiplicands(cj, AffinePoint.ToEiSiPoint(Xi));
                 EiSiPoint C1j = EiSiPoint.Addition(p1, p2);
                 EiSiPoint C2j = EiSiPoint.Base16Multiplicands(cj, G);
@@ -921,7 +944,7 @@ namespace RSService
         public static long Logarit(AffinePoint p)
         {
             AffinePoint sum = AffinePoint.InfinityPoint;
-            for (long i = 0; i < 10000 * muc_tin * muc_tin; i++)
+            for (long i = 0; i < 10000 * muc_tin; i++)
             {
                 if (sum.X == p.X && sum.Y == p.Y)
                 {

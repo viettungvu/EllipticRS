@@ -523,8 +523,6 @@ namespace ServiceMayChuWeb
 
                     throw;
                 }
-                
-                
                 _is_running_suggest = false;
             }
         }

@@ -172,7 +172,7 @@ namespace FormTest
                 //ReSysUtils.RunEiSi("D:\\Test\\OutputEisiFull");
                 //ReSysUtils.RunJacobian("D:\\Test\\OutputJacobian");
                 //ReSysUtils.RunStandard("D:\\Test\\OutputStandard");
-                ReSysUtils.RunCFB();
+                ReSysUtils.RunCF();
             }
             catch (Exception ex)
             {
