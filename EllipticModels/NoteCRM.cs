@@ -11,5 +11,16 @@ namespace EllipticModels
 
         public long news { get; set; }
         public Pharse pharse { get; set; }
+        public void SetProp()
+        {
+            if (thuoc_tinh == null)
+            {
+                thuoc_tinh = new List<int>();
+            }
+            if (!thuoc_tinh.Contains(-10000))
+            {
+                thuoc_tinh.Add(-10000);
+            }
+        }
     }
 }

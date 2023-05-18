@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Net.Sockets;
 using System.Numerics;
 using System.Security.Cryptography;
@@ -17,6 +18,7 @@ using log4net;
 using log4net.Config;
 using log4net.Core;
 using log4net.Repository.Hierarchy;
+using RSES;
 
 namespace RSService
 {
@@ -59,12 +61,12 @@ namespace RSService
 
         private static int max = 5;
         //private static int users = 943;
-        //private static int muc_tin = 200;
+        //private static int movies = 200;
 
 
         private static int users = 5;
-        private static int muc_tin = 40;
-        private static int ns = muc_tin * (muc_tin + 5) / 2;
+        private static int movies = 200;
+        private static int ns = movies * (movies + 5) / 2;
         private static int nk = (int)Math.Ceiling(0.5 + Math.Sqrt(ns * 2 + 0.25));
 
         public static int[] BRFStandard(ECCBase16.AffinePoint[] Aj, int ns, int max)
@@ -229,10 +231,10 @@ namespace RSService
                 Stopwatch sw = Stopwatch.StartNew();
 
 
-                int[,] Ri = new int[users, muc_tin];
+                int[,] Ri = new int[users, movies];
                 for (int i = 0; i < users; i++)
                 {
-                    for (int j = 0; j < muc_tin; j++)
+                    for (int j = 0; j < movies; j++)
                     {
                         Ri[i, j] = 0;
                     }
@@ -245,14 +247,14 @@ namespace RSService
                 {
                     string[] values = line.Split(',');
                     Ri[int.Parse(values[0]) - 1, int.Parse(values[1]) - 1] = int.Parse(values[2]);
-                    UserRate rate = new UserRate()
-                    {
-                        user_id = (int.Parse(values[0]) - 1).ToString(),
-                        movie_id = (int.Parse(values[1]) - 1).ToString(),
-                        rate = int.Parse(values[2]),
-                    };
-                    rate.AutoId().SetMetaData();
-                    rates.Add(rate);
+                    //UserRate rate = new UserRate()
+                    //{
+                    //    user_id = (int.Parse(values[0]) - 1).ToString(),
+                    //    movie_id = (int.Parse(values[1]) - 1).ToString(),
+                    //    rate = int.Parse(values[2]),
+                    //};
+                    //rate.AutoId().SetMetaData();
+                    //rates.Add(rate);
                 });
 
                 //UserRateRepository.Instance.IndexMany(rates);
@@ -261,27 +263,27 @@ namespace RSService
                 int[,] Rns = new int[users, ns];
                 for (int i = 0; i < users; i++)
                 {
-                    for (int j = 0; j < muc_tin; j++)
+                    for (int j = 0; j < movies; j++)
                     {
                         Rns[i, j] = Ri[i, j];
                         bag_rns.Add(string.Format("{0},{1},{2}", i, j, Rns[i, j]));
                     }
-                    for (int j = muc_tin; j < 2 * muc_tin; j++)
+                    for (int j = movies; j < 2 * movies; j++)
                     {
-                        if (Ri[i, j - muc_tin] == 0) Rns[i, j] = 0;
+                        if (Ri[i, j - movies] == 0) Rns[i, j] = 0;
                         else Rns[i, j] = 1;
                         bag_rns.Add(string.Format("{0},{1},{2}", i, j, Rns[i, j]));
                     }
-                    for (int j = 2 * muc_tin; j < 3 * muc_tin; j++)
+                    for (int j = 2 * movies; j < 3 * movies; j++)
                     {
-                        Rns[i, j] = Ri[i, j - 2 * muc_tin] * Ri[i, j - 2 * muc_tin];
+                        Rns[i, j] = Ri[i, j - 2 * movies] * Ri[i, j - 2 * movies];
                         bag_rns.Add(string.Format("{0},{1},{2}", i, j, Rns[i, j]));
                     }
 
-                    int t = 3 * muc_tin;
-                    for (int t2 = 0; t2 < muc_tin - 1; t2++)
+                    int t = 3 * movies;
+                    for (int t2 = 0; t2 < movies - 1; t2++)
                     {
-                        for (int t22 = t2 + 1; t22 < muc_tin; t22++)
+                        for (int t22 = t2 + 1; t22 < movies; t22++)
                         {
                             Rns[i, t] = Ri[i, t2] * Ri[i, t22];
                             bag_rns.Add(string.Format("{0},{1},{2}", i, t, Rns[i, t]));
@@ -298,9 +300,9 @@ namespace RSService
                 #region Pha 1 Chuẩn bị các khóa Những người dùng UI thực hiện
                 if (_run_phase_1)
                 {
-                    sw.Start();
                     try
                     {
+                        sw.Start();
                         ConcurrentBag<PharseContent> list = new ConcurrentBag<PharseContent>();
                         Parallel.For(0, users, (i) =>
                         {
@@ -320,32 +322,30 @@ namespace RSService
                                     secret = secret.ToString(),
                                     point = PointPharseContent.Map(pub_in_affine),
                                     pharse = Pharse.BUILD_SINH_KHOA_CONG_KHAI,
-                                    total_movies = muc_tin,
+                                    total_movies = movies,
                                     total_users = users,
                                 };
                                 content.AutoId().SetMetaData();
                                 list.Add(content);
                             });
                         });
+                        sw.Stop();
+                        NoteCRM crm = new NoteCRM()
+                        {
+                            users = users,
+                            news = movies,
+                            time_complete = sw.ElapsedMilliseconds,
+                            pharse = Pharse.BUILD_SINH_KHOA_CONG_KHAI,
+                        };
+                        crm.SetProp();
+                        NoteCRMRepository.Instance.Index(crm);
                         //PharseContentRepository.Instance.IndexMany(list);
-                        //for (int i = 0; i < users; i++)
-                        //{
-                        //    for (int j = 0; j < nk; j++)
-                        //    {
-                        //        BigInteger secret = ECCBase16.Numerics.RandomBetween(1, _curve.N - 1);
-                        //        ksuij[i, j] = secret;
-                        //        ECCBase16.EiSiPoint pub = EiSiPoint.Base16Multiplicands(secret, G);
-                        //        concurrent_1.Add(string.Format("{0},{1},{2}", i, j, secret));
-                        //        AffinePoint pub_in_affine = EiSiPoint.ToAffine(pub);
-                        //        concurrent_2.Add(string.Format("{0},{1},{2}", i, j, pub_in_affine.ToString()));
-                        //    }
-                        //}
+
                     }
                     catch (Exception ex)
                     {
                         throw;
                     }
-                    sw.Stop();
 
                     WriteFile(_key_user_prv, string.Join(Environment.NewLine, concurrent_1), false);
                     WriteFile(_key_user_pub, string.Join(Environment.NewLine, concurrent_2), false);
@@ -399,7 +399,15 @@ namespace RSService
                             concurrent_1.Add(string.Format("{0},{1}", j, p.ToString()));
                         });
                         sw.Stop();
-
+                        NoteCRM crm = new NoteCRM()
+                        {
+                            users = users,
+                            news = movies,
+                            time_complete = sw.ElapsedMilliseconds,
+                            pharse = Pharse.BUILD_SINH_KHOA_DUNG_CHUNG,
+                        };
+                        crm.SetProp();
+                        NoteCRMRepository.Instance.Index(crm);
                         WriteFile(_key_common, string.Join(Environment.NewLine, concurrent_1), false);
                         Clear(concurrent_1);
                     }
@@ -501,6 +509,17 @@ namespace RSService
                             }
                         });
                         sw.Stop();
+                        NoteCRM crm = new NoteCRM()
+                        {
+                            users = users,
+                            news = movies,
+                            time_complete = sw.ElapsedMilliseconds,
+                            pharse = Pharse.BUILD_MA_HOA_XEP_HANG,
+                        };
+                        crm.SetProp();
+                        NoteCRMRepository.Instance.Index(crm);
+
+
 
                         WriteFile(_encrypt, string.Join(Environment.NewLine, concurrent_1), false);
                         Clear(concurrent_1);
@@ -519,9 +538,6 @@ namespace RSService
                 {
                     try
                     {
-                        sw.Reset();
-
-                        sw.Start();
                         string[] data_phase3 = ReadFileAsLine(_encrypt);
                         Parallel.ForEach(data_phase3, line =>
                         {
@@ -542,6 +558,8 @@ namespace RSService
                         //    AffinePoint affine = EiSiPoint.ToAffine(Aj);
                         //    concurrent_1.Add(string.Format("{0},{1}", j, affine.ToString()));
                         //}
+                        sw.Reset();
+                        sw.Start();
                         Parallel.For(0, ns, (j) =>
                         {
                             EiSiPoint Aj = EiSiPoint.InfinityPoint;
@@ -554,7 +572,15 @@ namespace RSService
                             concurrent_1.Add(string.Format("{0},{1}", j, affine.ToString()));
                         });
                         sw.Stop();
-
+                        NoteCRM crm = new NoteCRM()
+                        {
+                            users = users,
+                            news = movies,
+                            time_complete = sw.ElapsedMilliseconds,
+                            pharse = Pharse.BUILD_TINH_TONG_BAO_MAT,
+                        };
+                        crm.SetProp();
+                        NoteCRMRepository.Instance.Index(crm);
                         WriteFile(_sum_encrypt, string.Join(Environment.NewLine, concurrent_1), false);
                         Clear(concurrent_1);
                     }
@@ -569,18 +595,27 @@ namespace RSService
                     AffinePoint[] Aj = new AffinePoint[ns];
                     try
                     {
-                        sw.Reset();
-                        sw.Start();
                         string[] data_phase4 = ReadFileAsLine(_sum_encrypt);
                         Parallel.ForEach(data_phase4, line =>
                         {
                             string[] values = line.Split(',');
                             Aj[int.Parse(values[0])] = new AffinePoint(BigInteger.Parse(values[1]), BigInteger.Parse(values[2]), _curve);
                         });
+                        sw.Reset();
+                        sw.Start();
                         int[] data_loga = BRFStandard(Aj, ns, max * max * users);
-                        WriteFile(_get_sum_encrypt, string.Join(";", data_loga), false);
-                        Sim(data_loga, muc_tin);
+                        Sim(data_loga, movies);
                         sw.Stop();
+                        NoteCRM crm = new NoteCRM()
+                        {
+                            users = users,
+                            news = movies,
+                            time_complete = sw.ElapsedMilliseconds,
+                            pharse = Pharse.CALCULATE_SIMILAR,
+                        };
+                        crm.SetProp();
+                        NoteCRMRepository.Instance.Index(crm);
+                        WriteFile(_get_sum_encrypt, string.Join(";", data_loga), false);
                     }
                     catch (Exception ex)
                     {
@@ -601,6 +636,7 @@ namespace RSService
         {
             try
             {
+
                 EiSiPoint G = AffinePoint.ToEiSiPoint(_curve.G);
                 ConcurrentBag<string> concurrent_1 = new ConcurrentBag<string>();
                 ConcurrentBag<string> concurrent_2 = new ConcurrentBag<string>();
@@ -609,16 +645,19 @@ namespace RSService
 
 
                 #region Pha 1:User target tạo khóa bí mật và khóa công khai 
+
+                Stopwatch sw = new Stopwatch();
+                sw.Start();
                 BigInteger xi = ECCBase16.Numerics.RandomBetween(1, _curve.N - 1);
                 AffinePoint Xi = EiSiPoint.ToAffine(EiSiPoint.Base16Multiplicands(xi, G));
-
+                sw.Stop();
 
                 #endregion
 
 
                 #region Pha 2: User target mã hóa xếp hạng
                 string[] str_rate_avg = ReadFileAsLine(_rate_avg);
-                int[] rate_round_avg = new int[muc_tin];
+                int[] rate_round_avg = new int[movies];
 
                 Parallel.ForEach(str_rate_avg, line =>
                 {
@@ -630,13 +669,14 @@ namespace RSService
 
 
                 string[] data = ReadFileInput("Data.txt");
-                int[,] Ri = new int[users, muc_tin];
+                int[,] Ri = new int[users, movies];
                 Parallel.ForEach(data, line =>
                 {
                     string[] values = line.Split(',');
                     Ri[int.Parse(values[0]) - 1, int.Parse(values[1]) - 1] = int.Parse(values[2]);
                 });
-                for (int j = 0; j < muc_tin; j++)
+                sw.Start();
+                Parallel.For(0, movies, (j) =>
                 {
                     BigInteger cj = ECCBase16.Numerics.RandomBetween(1, _curve.N - 1);
                     EiSiPoint p1 = EiSiPoint.Base16Multiplicands(Ri[0, j] * 10, G);
@@ -649,7 +689,31 @@ namespace RSService
 
                     concurrent_1.Add(string.Format("{0},{1}", j, C1j_affine.ToString()));
                     concurrent_2.Add(string.Format("{0},{1}", j, C2j_affine.ToString()));
-                }
+                });
+                sw.Stop();
+                NoteCRM crm = new NoteCRM()
+                {
+                    users = users,
+                    news = movies,
+                    time_complete = sw.ElapsedMilliseconds,
+                    pharse = Pharse.SUGGEST_MA_HOA_VECTOR,
+                };
+                crm.SetProp();
+                NoteCRMRepository.Instance.Index(crm);
+                //for (int j = 0; j < movies; j++)
+                //{
+                //    BigInteger cj = ECCBase16.Numerics.RandomBetween(1, _curve.N - 1);
+                //    EiSiPoint p1 = EiSiPoint.Base16Multiplicands(Ri[0, j] * 10, G);
+                //    EiSiPoint p2 = EiSiPoint.Base16Multiplicands(cj, AffinePoint.ToEiSiPoint(Xi));
+                //    EiSiPoint C1j = EiSiPoint.Addition(p1, p2);
+                //    EiSiPoint C2j = EiSiPoint.Base16Multiplicands(cj, G);
+
+                //    AffinePoint C1j_affine = EiSiPoint.ToAffine(C1j);
+                //    AffinePoint C2j_affine = EiSiPoint.ToAffine(C2j);
+
+                //    concurrent_1.Add(string.Format("{0},{1}", j, C1j_affine.ToString()));
+                //    concurrent_2.Add(string.Format("{0},{1}", j, C2j_affine.ToString()));
+                //}
                 WriteFile(_cf_cipher_user_part_1, string.Join(Environment.NewLine, concurrent_1), false);
                 WriteFile(_cf_cipher_user_part_2, string.Join(Environment.NewLine, concurrent_2), false);
                 Clear(concurrent_1);
@@ -658,7 +722,7 @@ namespace RSService
 
                 #region Pha 2:
                 string[] str_sim_round = ReadFileAsLine(_sim_round);
-                int[,] sim_rounded = new int[muc_tin, muc_tin];
+                int[,] sim_rounded = new int[movies, movies];
                 Parallel.ForEach(str_sim_round, line =>
                 {
                     string[] values = line.Split(',');
@@ -667,8 +731,8 @@ namespace RSService
 
 
 
-                EiSiPoint[] ctext_part_1 = new EiSiPoint[muc_tin];
-                EiSiPoint[] ctext_part_2 = new EiSiPoint[muc_tin];
+                EiSiPoint[] ctext_part_1 = new EiSiPoint[movies];
+                EiSiPoint[] ctext_part_2 = new EiSiPoint[movies];
 
                 string[] data_part_1 = ReadFileAsLine(_cf_cipher_user_part_1);
 
@@ -683,20 +747,20 @@ namespace RSService
                     string[] values = line.Split(',');
                     ctext_part_2[int.Parse(values[0])] = new EiSiPoint(BigInteger.Parse(values[1]), BigInteger.Parse(values[2]), 1, _curve);
                 });
-
-
+                sw.Reset();
+                sw.Start();
                 BigInteger c1 = ECCBase16.Numerics.RandomBetween(1, _curve.N - 1);
 
-                EiSiPoint[] f9 = new EiSiPoint[muc_tin];
-                EiSiPoint[] f10 = new EiSiPoint[muc_tin];
-                EiSiPoint[] f11 = new EiSiPoint[muc_tin];
+                EiSiPoint[] f9 = new EiSiPoint[movies];
+                EiSiPoint[] f10 = new EiSiPoint[movies];
+                EiSiPoint[] f11 = new EiSiPoint[movies];
 
-                for (int k = 0; k < muc_tin; k++)
+                Parallel.For(0, movies, (k) =>
                 {
                     EiSiPoint sum5 = EiSiPoint.InfinityPoint;
                     BigInteger c2 = ECCBase16.Numerics.RandomBetween(1, _curve.N - 1);
                     BigInteger c3 = ECCBase16.Numerics.RandomBetween(1, _curve.N - 1);
-                    for (int j = k ; j < muc_tin; j++)
+                    for (int j = k; j < movies; j++)
                     {
                         EiSiPoint skj_g = EiSiPoint.Base16Multiplicands(sim_rounded[k, j], G);
                         sum5 = EiSiPoint.Addition(sum5, skj_g);
@@ -708,7 +772,7 @@ namespace RSService
 
 
                     EiSiPoint sum_f9k = EiSiPoint.InfinityPoint;
-                    for (int j = k; j < muc_tin; j++)
+                    for (int j = k; j < movies; j++)
                     {
                         EiSiPoint p = EiSiPoint.Multiply(sim_rounded[k, j], EiSiPoint.Subtract(ctext_part_1[j], f7k));
                         sum_f9k = EiSiPoint.Addition(sum_f9k, p);
@@ -717,7 +781,7 @@ namespace RSService
                     f9[k] = EiSiPoint.Addition(f5k, sum_f9k);
 
                     EiSiPoint sum_f10k = EiSiPoint.InfinityPoint;
-                    for (int j = k ; j < muc_tin; j++)
+                    for (int j = k; j < movies; j++)
                     {
                         EiSiPoint p = EiSiPoint.Multiply(sim_rounded[k, j], EiSiPoint.Subtract(ctext_part_2[j], f8k));
                         sum_f10k = EiSiPoint.Addition(sum_f10k, p);
@@ -725,49 +789,104 @@ namespace RSService
                     f10[k] = EiSiPoint.Addition(f6k, sum_f10k);
 
                     EiSiPoint sum_f11 = EiSiPoint.InfinityPoint;
-                    for (int j = k; j < muc_tin; j++)
+                    for (int j = k; j < movies; j++)
                     {
                         EiSiPoint p = EiSiPoint.Multiply(sim_rounded[k, j], G);
                         sum_f11 = EiSiPoint.Addition(sum_f11, p);
                     }
 
                     f11[k] = EiSiPoint.Addition(EiSiPoint.Base16Multiplicands(c1, AffinePoint.ToEiSiPoint(Xi)), sum_f11);
-                }
+                });
+
+
+                //for (int k = 0; k < movies; k++)
+                //{
+                //    EiSiPoint sum5 = EiSiPoint.InfinityPoint;
+                //    BigInteger c2 = ECCBase16.Numerics.RandomBetween(1, _curve.N - 1);
+                //    BigInteger c3 = ECCBase16.Numerics.RandomBetween(1, _curve.N - 1);
+                //    for (int j = k; j < movies; j++)
+                //    {
+                //        EiSiPoint skj_g = EiSiPoint.Base16Multiplicands(sim_rounded[k, j], G);
+                //        sum5 = EiSiPoint.Addition(sum5, skj_g);
+                //    }
+                //    EiSiPoint f5k = EiSiPoint.Addition(EiSiPoint.Multiply(rate_round_avg[k], sum5), EiSiPoint.Base16Multiplicands(c2, AffinePoint.ToEiSiPoint(Xi)));
+                //    EiSiPoint f6k = EiSiPoint.Base16Multiplicands(c2, G);
+                //    EiSiPoint f7k = EiSiPoint.Addition(EiSiPoint.Multiply(rate_round_avg[k], G), EiSiPoint.Base16Multiplicands(c3, AffinePoint.ToEiSiPoint(Xi)));
+                //    EiSiPoint f8k = EiSiPoint.Base16Multiplicands(c3, G);
+
+
+                //    EiSiPoint sum_f9k = EiSiPoint.InfinityPoint;
+                //    for (int j = k; j < movies; j++)
+                //    {
+                //        EiSiPoint p = EiSiPoint.Multiply(sim_rounded[k, j], EiSiPoint.Subtract(ctext_part_1[j], f7k));
+                //        sum_f9k = EiSiPoint.Addition(sum_f9k, p);
+                //    }
+
+                //    f9[k] = EiSiPoint.Addition(f5k, sum_f9k);
+
+                //    EiSiPoint sum_f10k = EiSiPoint.InfinityPoint;
+                //    for (int j = k; j < movies; j++)
+                //    {
+                //        EiSiPoint p = EiSiPoint.Multiply(sim_rounded[k, j], EiSiPoint.Subtract(ctext_part_2[j], f8k));
+                //        sum_f10k = EiSiPoint.Addition(sum_f10k, p);
+                //    }
+                //    f10[k] = EiSiPoint.Addition(f6k, sum_f10k);
+
+                //    EiSiPoint sum_f11 = EiSiPoint.InfinityPoint;
+                //    for (int j = k; j < movies; j++)
+                //    {
+                //        EiSiPoint p = EiSiPoint.Multiply(sim_rounded[k, j], G);
+                //        sum_f11 = EiSiPoint.Addition(sum_f11, p);
+                //    }
+
+                //    f11[k] = EiSiPoint.Addition(EiSiPoint.Base16Multiplicands(c1, AffinePoint.ToEiSiPoint(Xi)), sum_f11);
+                //}
                 EiSiPoint f12 = EiSiPoint.Base16Multiplicands(c1, G);
-
+                sw.Stop();
+                crm = new NoteCRM()
+                {
+                    users = users,
+                    news = movies,
+                    time_complete = sw.ElapsedMilliseconds,
+                    pharse = Pharse.SUGGEST_MA_HOA_DO_TUONG_TU,
+                };
+                crm.SetProp();
+                NoteCRMRepository.Instance.Index(crm);
                 //test
-                AffinePoint[] testC6 = new AffinePoint[muc_tin];
-                for (int k = 0; k < muc_tin; k++)
-                {
-                    int sum = 0;
-                    for (int j = k; j < muc_tin; j++)
-                    {
-                        sum += sim_rounded[k, j];
-                    }
-                    EiSiPoint tmp = EiSiPoint.Base16Multiplicands(sum, G);
-                    testC6[k] = EiSiPoint.ToAffine(tmp);
-                }
+                //AffinePoint[] testC6 = new AffinePoint[movies];
+                //for (int k = 0; k < movies; k++)
+                //{
+                //    int sum = 0;
+                //    for (int j = k; j < movies; j++)
+                //    {
+                //        sum += sim_rounded[k, j];
+                //    }
+                //    EiSiPoint tmp = EiSiPoint.Base16Multiplicands(sum, G);
+                //    testC6[k] = EiSiPoint.ToAffine(tmp);
+                //}
 
-                AffinePoint[] testck6 = new AffinePoint[muc_tin];
-                for (int k = 0; k < muc_tin; k++)
-                {
-                    int sum1 = 0;
-                    int sum2 = 0;
-                    for (int j = k; j < muc_tin; j++)
-                    {
-                        sum1 += sim_rounded[k, j];
-                        sum2 += (Ri[0, j] * 10 - rate_round_avg[j]) * sim_rounded[k, j];
-                    }
-                    EiSiPoint tmp = EiSiPoint.Base16Multiplicands(sum1 * rate_round_avg[k] + sum2, G);
-                    testck6[k] = EiSiPoint.ToAffine(tmp);
-                }
+                //AffinePoint[] testck6 = new AffinePoint[movies];
+                //for (int k = 0; k < movies; k++)
+                //{
+                //    int sum1 = 0;
+                //    int sum2 = 0;
+                //    for (int j = k; j < movies; j++)
+                //    {
+                //        sum1 += sim_rounded[k, j];
+                //        sum2 += (Ri[0, j] * 10 - rate_round_avg[j]) * sim_rounded[k, j];
+                //    }
+                //    EiSiPoint tmp = EiSiPoint.Base16Multiplicands(sum1 * rate_round_avg[k] + sum2, G);
+                //    testck6[k] = EiSiPoint.ToAffine(tmp);
+                //}
 
 
 
 
                 ///Pharse 3
                 ///
-                Parallel.For(0, muc_tin, (k) =>
+                sw.Reset();
+                sw.Start();
+                Parallel.For(0, movies, (k) =>
                 {
                     EiSiPoint Ck = EiSiPoint.Subtract(f9[k], EiSiPoint.Base16Multiplicands(xi, f10[k]));
                     EiSiPoint C6 = EiSiPoint.Subtract(f11[k], EiSiPoint.Base16Multiplicands(xi, f12));
@@ -776,11 +895,10 @@ namespace RSService
                     AffinePoint tmp_c6 = EiSiPoint.ToAffine(C6);
                     AffinePoint tmp_ck = EiSiPoint.ToAffine(Ck);
                     long d = Logarit(tmp_c6);
-
                     long dk = Logarit(tmp_ck);
                     concurrent_1.Add(String.Format("{0},{1},{2},{3},{4}", 0, k, dk, d, (double)dk / d));
                 });
-                //for (int k = 0; k < muc_tin ; k++)
+                //for (int k = 0; k < movies; k++)
                 //{
                 //    EiSiPoint Ck = EiSiPoint.Subtract(f9[k], EiSiPoint.Base16Multiplicands(xi, f10[k]));
                 //    EiSiPoint C6 = EiSiPoint.Subtract(f11[k], EiSiPoint.Base16Multiplicands(xi, f12));
@@ -793,6 +911,17 @@ namespace RSService
                 //    long dk = Logarit(tmp_ck);
                 //    concurrent_1.Add(String.Format("{0},{1},{2},{3},{4}", 0, k, dk, d, (double)dk / d));
                 //}
+                sw.Stop();
+                crm = new NoteCRM()
+                {
+                    users = users,
+                    news = movies,
+                    time_complete = sw.ElapsedMilliseconds,
+                    pharse = Pharse.SUGGEST_DU_DOAN_XEP_HANG,
+                };
+                crm.SetProp();
+                NoteCRMRepository.Instance.Index(crm);
+
                 WriteFile("1.3.pik.txt", string.Join(Environment.NewLine, concurrent_1), false);
                 #endregion
             }
@@ -801,7 +930,7 @@ namespace RSService
 
                 throw;
             }
-            
+
         }
 
 
@@ -826,14 +955,14 @@ namespace RSService
             string[] str_rate_avg = ReadFileAsLine(_rate_avg);
 
             string[] data = ReadFileInput("Data.txt");
-            int[,] Ri = new int[users, muc_tin];
+            int[,] Ri = new int[users, movies];
             Parallel.ForEach(data, line =>
             {
                 string[] values = line.Split(',');
                 Ri[int.Parse(values[0]) - 1, int.Parse(values[1]) - 1] = int.Parse(values[2]);
 
             });
-            for (int j = 0; j < muc_tin; j++)
+            for (int j = 0; j < movies; j++)
             {
                 BigInteger cj = ECCBase16.Numerics.RandomBetween(1, _curve.N - 1);
                 EiSiPoint p1 = EiSiPoint.Base16Multiplicands(Ri[0, j] * 10, G);
@@ -855,7 +984,7 @@ namespace RSService
 
             #region Pha 2:
             string[] str_sim_round = ReadFileAsLine(_sim_round);
-            int[,] sim_rounded = new int[muc_tin, muc_tin];
+            int[,] sim_rounded = new int[movies, movies];
             Parallel.ForEach(str_sim_round, line =>
             {
                 string[] values = line.Split(',');
@@ -873,8 +1002,8 @@ namespace RSService
 
 
 
-            EiSiPoint[] ctext_part_1 = new EiSiPoint[muc_tin];
-            EiSiPoint[] ctext_part_2 = new EiSiPoint[muc_tin];
+            EiSiPoint[] ctext_part_1 = new EiSiPoint[movies];
+            EiSiPoint[] ctext_part_2 = new EiSiPoint[movies];
 
             string[] data_part_1 = ReadFileAsLine(_cf_cipher_user_part_1);
 
@@ -891,14 +1020,14 @@ namespace RSService
             });
 
 
-            EiSiPoint[] f1 = new EiSiPoint[muc_tin];
-            EiSiPoint[] f2 = new EiSiPoint[muc_tin];
+            EiSiPoint[] f1 = new EiSiPoint[movies];
+            EiSiPoint[] f2 = new EiSiPoint[movies];
             EiSiPoint f3 = EiSiPoint.InfinityPoint;
             BigInteger c = ECCBase16.Numerics.RandomBetween(1, _curve.N - 1);
-            for (long k = 0; k < muc_tin; k++)
+            for (long k = 0; k < movies; k++)
             {
                 EiSiPoint sumf1 = EiSiPoint.InfinityPoint;
-                for (long j = k; j < muc_tin; j++)
+                for (long j = k; j < movies; j++)
                 {
                     f1[k] = EiSiPoint.Addition(f1[k], EiSiPoint.Base16Multiplicands(sim_rounded[k, j], ctext_part_1[j]));
                     f2[k] = EiSiPoint.Addition(f2[k], EiSiPoint.Base16Multiplicands(sim_rounded[k, j], ctext_part_2[j]));
@@ -920,9 +1049,9 @@ namespace RSService
 
             #region Test
             int sum = 0;
-            for (int k = 0; k < muc_tin; k++)
+            for (int k = 0; k < movies; k++)
             {
-                for (int j = k; j < muc_tin; j++)
+                for (int j = k; j < movies; j++)
                 {
                     sum += sim_rounded[k, j];
                 }
@@ -931,7 +1060,7 @@ namespace RSService
             testAff = EiSiPoint.ToAffine(test);
 
             #endregion
-            for (int k = 0; k < muc_tin; k++)
+            for (int k = 0; k < movies; k++)
             {
                 EiSiPoint Ck = EiSiPoint.Subtract(f1[k], EiSiPoint.Base16Multiplicands(xi, f2[k]));
                 AffinePoint tmp_ck = EiSiPoint.ToAffine(Ck);
@@ -941,19 +1070,60 @@ namespace RSService
             WriteFile("1.3.pik.txt", string.Join(Environment.NewLine, concurrent_1), false);
 
         }
+
+
+        private static ConcurrentDictionary<long, AffinePoint> _cache_affine = new ConcurrentDictionary<long, AffinePoint>();
+        private static ConcurrentDictionary<long, EiSiPoint> _cache_affine_2 = new ConcurrentDictionary<long, EiSiPoint>();
         public static long Logarit(AffinePoint p)
         {
-            AffinePoint sum = AffinePoint.InfinityPoint;
-            for (long i = 0; i < 10000 * muc_tin; i++)
+            try
             {
-                if (sum.X == p.X && sum.Y == p.Y)
+                var exist = _cache_affine.FirstOrDefault(x => x.Value.X == p.Y && x.Value.Y == p.Y);
+                if (exist.Key != 0 && exist.Value != null)
                 {
-                    return i;
+                    return exist.Key;
                 }
-                else
+                AffinePoint sum = AffinePoint.InfinityPoint;
+                EiSiPoint mul = EiSiPoint.InfinityPoint;
+
+                EiSiPoint G = AffinePoint.ToEiSiPoint(_curve.G);
+                for (long i = 0; i < 10000 * movies; i++)
                 {
-                    sum = AffinePoint.Addition(sum, _curve.G);
+                    if (_cache_affine.TryGetValue(i, out AffinePoint val))
+                    {
+                        if (val.X == p.X && val.Y == p.Y)
+                        {
+                            return i;
+
+                        }
+                    }
+                    else
+                    {
+                        if (sum.X == p.X && sum.Y == p.Y)
+                        {
+                            return i;
+                        }
+                        else
+                        {
+                            sum = AffinePoint.Addition(sum, _curve.G);
+                            _cache_affine.TryAdd(i, sum);
+                        }
+                    }
+                    //if (sum.X == p.X && sum.Y == p.Y)
+                    //{
+                    //    return i;
+                    //}
+                    //else
+                    //{
+                    //    mul = EiSiPoint.Base16Multiplicands(i, G);
+                    //    sum = EiSiPoint.ToAffine(mul);
+                    //    _cache_affine.TryAdd(i, sum);
+                    //}
                 }
+            }
+            catch (Exception ex)
+            {
+                throw;
             }
             return 0;
         }
@@ -970,12 +1140,12 @@ namespace RSService
             {
                 Stopwatch sw = Stopwatch.StartNew();
 
-                int ns = muc_tin * (muc_tin + 5) / 2;
+                int ns = movies * (movies + 5) / 2;
                 int nk = (int)Math.Ceiling(0.5 + Math.Sqrt(ns * 2 + 0.25));
-                int[,] Ri = new int[users, muc_tin];
+                int[,] Ri = new int[users, movies];
                 for (int i = 0; i < users; i++)
                 {
-                    for (int j = 0; j < muc_tin; j++)
+                    for (int j = 0; j < movies; j++)
                     {
                         Ri[i, j] = 0;
                     }
@@ -990,24 +1160,24 @@ namespace RSService
                 int[,] Rns = new int[users, ns];
                 for (int i = 0; i < users; i++)
                 {
-                    for (int j = 0; j < muc_tin; j++)
+                    for (int j = 0; j < movies; j++)
                     {
                         Rns[i, j] = Ri[i, j];
                     }
-                    for (int j = muc_tin; j < 2 * muc_tin; j++)
+                    for (int j = movies; j < 2 * movies; j++)
                     {
-                        if (Ri[i, j - muc_tin] == 0) Rns[i, j] = 0;
+                        if (Ri[i, j - movies] == 0) Rns[i, j] = 0;
                         else Rns[i, j] = 1;
                     }
-                    for (int j = 2 * muc_tin; j < 3 * muc_tin; j++)
+                    for (int j = 2 * movies; j < 3 * movies; j++)
                     {
-                        Rns[i, j] = Ri[i, j - 2 * muc_tin] * Ri[i, j - 2 * muc_tin];
+                        Rns[i, j] = Ri[i, j - 2 * movies] * Ri[i, j - 2 * movies];
                     }
 
-                    int t = 3 * muc_tin;
+                    int t = 3 * movies;
                     for (int t2 = 0; t2 < users - 1; t2++)
                     {
-                        for (int t22 = t2 + 1; t22 < muc_tin; t22++)
+                        for (int t22 = t2 + 1; t22 < movies; t22++)
                         {
                             Rns[i, t] = Ri[i, t2] * Ri[i, t22];
                             t++;
@@ -1284,7 +1454,7 @@ namespace RSService
                         });
 
                         var data_loga = BRFJacobian(Aj, _curve_jacobian, ns, max * max * users);
-                        Sim(data_loga, muc_tin);
+                        Sim(data_loga, movies);
                         WriteFile(_get_sum_encrypt, string.Join(";", data_loga), false);
                         sw.Stop();
                     }
@@ -1314,12 +1484,12 @@ namespace RSService
             {
                 Stopwatch sw = Stopwatch.StartNew();
 
-                int ns = muc_tin * (muc_tin + 5) / 2;
+                int ns = movies * (movies + 5) / 2;
                 int nk = (int)Math.Ceiling(0.5 + Math.Sqrt(ns * 2 + 0.25));
-                int[,] Ri = new int[users, muc_tin];
+                int[,] Ri = new int[users, movies];
                 for (int i = 0; i < users; i++)
                 {
-                    for (int j = 0; j < muc_tin; j++)
+                    for (int j = 0; j < movies; j++)
                     {
                         Ri[i, j] = 0;
                     }
@@ -1334,24 +1504,24 @@ namespace RSService
                 int[,] Rns = new int[users, ns];
                 for (int i = 0; i < users; i++)
                 {
-                    for (int j = 0; j < muc_tin; j++)
+                    for (int j = 0; j < movies; j++)
                     {
                         Rns[i, j] = Ri[i, j];
                     }
-                    for (int j = muc_tin; j < 2 * muc_tin; j++)
+                    for (int j = movies; j < 2 * movies; j++)
                     {
-                        if (Ri[i, j - muc_tin] == 0) Rns[i, j] = 0;
+                        if (Ri[i, j - movies] == 0) Rns[i, j] = 0;
                         else Rns[i, j] = 1;
                     }
-                    for (int j = 2 * muc_tin; j < 3 * muc_tin; j++)
+                    for (int j = 2 * movies; j < 3 * movies; j++)
                     {
-                        Rns[i, j] = Ri[i, j - 2 * muc_tin] * Ri[i, j - 2 * muc_tin];
+                        Rns[i, j] = Ri[i, j - 2 * movies] * Ri[i, j - 2 * movies];
                     }
 
-                    int t = 3 * muc_tin;
-                    for (int t2 = 0; t2 < muc_tin - 1; t2++)
+                    int t = 3 * movies;
+                    for (int t2 = 0; t2 < movies - 1; t2++)
                     {
-                        for (int t22 = t2 + 1; t22 < muc_tin; t22++)
+                        for (int t22 = t2 + 1; t22 < movies; t22++)
                         {
                             Rns[i, t] = Ri[i, t2] * Ri[i, t22];
                             t++;
@@ -1618,7 +1788,7 @@ namespace RSService
 
                         var data_loga = BRFStandard(Aj, _curve_standard, ns, max * max * users);
                         WriteFile(_get_sum_encrypt, string.Join(";", data_loga), false);
-                        Sim(data_loga, muc_tin);
+                        Sim(data_loga, movies);
                         sw.Stop();
                     }
                     catch (Exception ex)

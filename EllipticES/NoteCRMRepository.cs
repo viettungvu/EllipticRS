@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using EllipticES;
 using EllipticModels;
@@ -7,7 +8,7 @@ using Nest;
 
 namespace RSES
 {
-    public class NoteCRMRepository:IESRepository
+    public class NoteCRMRepository : IESRepository
     {
         private static string _default_index = "";
         public NoteCRMRepository(string modify_index)
@@ -39,6 +40,25 @@ namespace RSES
         public bool Index(NoteCRM data)
         {
             return Index<NoteCRM>(_default_index, data, "", data.id);
+        }
+
+        public List<NoteCRM> GetAll(int thuoc_tinh)
+        {
+            List<QueryContainer> filter = new List<QueryContainer>()
+            {
+                new TermQuery{Field="thuoc_tinh", Value=thuoc_tinh}
+            };
+            SearchRequest req = new SearchRequest(_default_index)
+            {
+                Size = 1000,
+                Query = new QueryContainer(new BoolQuery { Filter = filter }),
+            };
+            var res = client.Search<NoteCRM>(req);
+            if (res.IsValid)
+            {
+                return res.Hits.Select(HitToDocument).ToList();
+            }
+            return new List<NoteCRM>();
         }
     }
 }

@@ -27,6 +27,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ServiceMayChuWeb", "Service
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WebAPIGoiY", "WebAPIGoiY\WebAPIGoiY.csproj", "{5EAD1CA0-067D-43B3-A1B0-86C681D279A3}"
 EndProject
+Project("{54435603-DBB4-11D2-8724-00A0C9A8B90C}") = "SetupTool", "SetupTool\SetupTool.vdproj", "{B1FB901C-2DBE-4F2C-B328-B6C1C033E999}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -81,6 +83,8 @@ Global
 		{5EAD1CA0-067D-43B3-A1B0-86C681D279A3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5EAD1CA0-067D-43B3-A1B0-86C681D279A3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5EAD1CA0-067D-43B3-A1B0-86C681D279A3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B1FB901C-2DBE-4F2C-B328-B6C1C033E999}.Debug|Any CPU.ActiveCfg = Debug
+		{B1FB901C-2DBE-4F2C-B328-B6C1C033E999}.Release|Any CPU.ActiveCfg = Release
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

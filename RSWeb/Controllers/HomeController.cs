@@ -1,5 +1,7 @@
 ﻿using System.Diagnostics;
+using EllipticModels;
 using Microsoft.AspNetCore.Mvc;
+using RSES;
 using RSWeb.Models;
 
 namespace RSWeb.Controllers
@@ -27,6 +29,20 @@ namespace RSWeb.Controllers
         public IActionResult Error()
         {
             return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+        }
+
+        public IActionResult Chart()
+        {
+            return View();
+        }
+        [HttpGet]
+        public IActionResult GetChartData()
+        {
+            List<NoteCRM> logs = NoteCRMRepository.Instance.GetAll(-10000);
+            return Json(new
+            {
+
+            });
         }
     }
 }

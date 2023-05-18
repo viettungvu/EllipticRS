@@ -13,17 +13,48 @@ using EllipticES;
 using EllipticModels;
 using RSService;
 using static System.Net.Mime.MediaTypeNames;
+using System.Threading.Tasks;
+using System.Timers;
 
 namespace FormTest
 {
     public partial class Form1 : Form
     {
+        private static System.Timers.Timer _timer = null;
         private static readonly ECCBase16.Curve _curve = new ECCBase16.Curve(ECCBase16.CurveName.secp160k1);
         private static Stopwatch _sw = new Stopwatch();
-
+        private static bool _is_running = false;
         public Form1()
         {
             InitializeComponent();
+            init();
+        }
+
+        private void init()
+        {
+            _timer = new System.Timers.Timer();
+            _timer.Interval = 10000;
+            _timer.AutoReset = true;
+            _timer.Elapsed += _timer_Elapsed;
+        }
+
+        private void _timer_Elapsed(object? sender, ElapsedEventArgs e)
+        {
+            if (!_is_running)
+            {
+                _is_running = true;
+                try
+                {
+                    //ReSysUtils.RunEiSi("D:\\Test\\OutputEisiFull");
+                    ReSysUtils.RunCF();
+                }
+                catch (Exception ex)
+                {
+                   
+                }
+               
+                _is_running = false;
+            }
         }
 
         private void button1_Click(object sender, EventArgs e)
@@ -169,18 +200,18 @@ namespace FormTest
             _sw.Start();
             try
             {
-                //ReSysUtils.RunEiSi("D:\\Test\\OutputEisiFull");
+                _timer.Start();
+                // ReSysUtils.RunEiSi("D:\\Test\\OutputEisiFull");
                 //ReSysUtils.RunJacobian("D:\\Test\\OutputJacobian");
                 //ReSysUtils.RunStandard("D:\\Test\\OutputStandard");
-                ReSysUtils.RunCF();
+                // ReSysUtils.RunCF();
             }
             catch (Exception ex)
             {
-
                 MessageBox.Show(ex.StackTrace);
             }
             _sw.Stop();
-            setTime();
+            //setTime();
         }
 
         private void textBox1_TextChanged(object sender, EventArgs e)
@@ -256,7 +287,7 @@ namespace FormTest
         private void button12_Click(object sender, EventArgs e)
         {
             int n = 5;
-            int m = 40;
+            int m = 200;
             int max = 5;
             Random rd = new Random();
             ConcurrentBag<string> bag = new ConcurrentBag<string>();
