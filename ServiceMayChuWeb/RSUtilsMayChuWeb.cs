@@ -27,6 +27,7 @@ namespace ServiceMayChuWeb
     public class RSUtilsMayChuWeb
     {
         private static readonly Curve _curve = new ECCBase16.Curve(name: ECCBase16.CurveName.secp160k1);
+        private static readonly EiSiPoint G = AffinePoint.ToEiSiPoint(_curve.G);
         private static readonly string url_server_suggest = ConfigurationManager.AppSettings["URLServerGoiY"];
         private static readonly string _url_api_receive = url_server_suggest + "/api/recommend/receive-data";
         private static long users = 0;
@@ -51,16 +52,10 @@ namespace ServiceMayChuWeb
         private static readonly string _rns = "0.0.Rns.txt";
         private static string _data_folder = "D:\\Test\\OutputService";
 
-
-
-
-
-
         public static async Task XayDungHeGoiY()
         {
-
-            ConcurrentBag<string> concurrent_1 = new ConcurrentBag<string>();
-            ConcurrentBag<string> concurrent_2 = new ConcurrentBag<string>();
+            //ConcurrentBag<string> concurrent_1 = new ConcurrentBag<string>();
+            //ConcurrentBag<string> concurrent_2 = new ConcurrentBag<string>();
 
             List<UserRate> user_rates = UserRateRepository.Instance.GetAll(out _);
             List<TaiKhoan> dsach_tai_khoan = TaiKhoanRepository.Instance.GetAll(out users, 1, 99999, new string[] { "id", "index" });
@@ -111,38 +106,36 @@ namespace ServiceMayChuWeb
             ConcurrentTwoKeysDictionary<string, string, int> Ri = new ConcurrentTwoKeysDictionary<string, string, int>();
             ConcurrentTwoKeysDictionary<string, long, int> Rns = new ConcurrentTwoKeysDictionary<string, long, int>();
 
-            EiSiPoint G = AffinePoint.ToEiSiPoint(_curve.G);
-
-            ConcurrentBag<string> bag_rns = new ConcurrentBag<string>();
+            //ConcurrentBag<string> bag_rns = new ConcurrentBag<string>();
             Parallel.ForEach(user_rates, (item) =>
             {
                 Ri.Add(item.user_id, item.movie_id, item.rate);
-                bag_rns.Add(string.Format("{0},{1},{2}", item.user_id, item.movie_id, item.rate));
+                //bag_rns.Add(string.Format("{0},{1},{2}", item.user_id, item.movie_id, item.rate));
             });
-            WriteFile("rate.txt", string.Join(Environment.NewLine, bag_rns), false);
-            Clear(bag_rns);
+            //WriteFile("rate.txt", string.Join(Environment.NewLine, bag_rns), false);
+            //Clear(bag_rns);
 
-            ConcurrentBag<string> test = new ConcurrentBag<string>();
+            //ConcurrentBag<string> test = new ConcurrentBag<string>();
             foreach (string user_id in dsach_id_tai_khoan)
             {
                 long j = 0;
                 foreach (string movie_id in dsach_id_phim)
                 {
                     Rns[user_id, j] = Ri[user_id, movie_id];
-                    bag_rns.Add(string.Format("{0},{1},{2}", user_id, j, Rns[user_id, j]));
+                    //bag_rns.Add(string.Format("{0},{1},{2}", user_id, j, Rns[user_id, j]));
                     j += 1;
                 }
                 foreach (string movie_id in dsach_id_phim)
                 {
                     int rate = Ri[user_id, movie_id] == 0 ? 0 : 1;
                     Rns[user_id, j] = rate;
-                    bag_rns.Add(string.Format("{0},{1},{2}", user_id, j, Rns[user_id, j]));
+                    //bag_rns.Add(string.Format("{0},{1},{2}", user_id, j, Rns[user_id, j]));
                     j += 1;
                 }
                 foreach (string movie_id in dsach_id_phim)
                 {
                     Rns[user_id, j] = Ri[user_id, movie_id] * Ri[user_id, movie_id];
-                    bag_rns.Add(string.Format("{0},{1},{2}", user_id, j, Rns[user_id, j]));
+                    //bag_rns.Add(string.Format("{0},{1},{2}", user_id, j, Rns[user_id, j]));
                     j += 1;
                 }
                 long t = 3 * movies;
@@ -150,15 +143,15 @@ namespace ServiceMayChuWeb
                 {
                     for (int t22 = t2 + 1; t22 < movies; t22++)
                     {
-                        test.Add(string.Format("{0},{1},{2},{3}", user_id, t, t2, t22));
+                        //test.Add(string.Format("{0},{1},{2},{3}", user_id, t, t2, t22));
                         Rns[user_id, t] = Ri[user_id, dsach_id_phim.ElementAt(t2)] * Ri[user_id, dsach_id_phim.ElementAt(t22)];
-                        bag_rns.Add(string.Format("{0},{1},{2}", user_id, t, Rns[user_id, t]));
+                        //bag_rns.Add(string.Format("{0},{1},{2}", user_id, t, Rns[user_id, t]));
                         t++;
                     }
                 }
             }
-            WriteFile(_rns, string.Join(Environment.NewLine, bag_rns), false);
-            WriteFile("test.txt", string.Join(Environment.NewLine, test), false);
+            //WriteFile(_rns, string.Join(Environment.NewLine, bag_rns), false);
+            //WriteFile("test.txt", string.Join(Environment.NewLine, test), false);
             if (!_is_running_pharse_1)
             {
                 Stopwatch sw = new Stopwatch();
@@ -172,8 +165,8 @@ namespace ServiceMayChuWeb
                     List<PharseContent> khoa_cong_khai = PharseContentRepository.Instance.GetByPharse(Pharse.BUILD_SINH_KHOA_CONG_KHAI, out _);
                     khoa_cong_khai.ForEach(x =>
                     {
-                        concurrent_1.Add(string.Format("{0},{1},{2}", x.user_id, x.key_index, x.secret));
-                        concurrent_2.Add(string.Format("{0},{1},{2},{3}", x.user_id, x.key_index, x.point.X, x.point.Y));
+                        //concurrent_1.Add(string.Format("{0},{1},{2}", x.user_id, x.key_index, x.secret));
+                        //concurrent_2.Add(string.Format("{0},{1},{2},{3}", x.user_id, x.key_index, x.point.X, x.point.Y));
                     });
 
                     Parallel.ForEach(dsach_id_tai_khoan, (user_id) =>
@@ -181,8 +174,7 @@ namespace ServiceMayChuWeb
                         Parallel.For(0, nk, (j) =>
                         {
                             BigInteger secret = ECCBase16.Numerics.RandomBetween(1, _curve.N - 1);
-                            ECCBase16.EiSiPoint pub = EiSiPoint.Base16Multiplicands(secret, G);
-                            AffinePoint pub_in_affine = EiSiPoint.ToAffine(pub);
+                            AffinePoint pub = EiSiPoint.MulBase16Aff(secret, G);
                             PharseContent user_key = new PharseContent()
                             {
                                 total_users = users,
@@ -191,7 +183,7 @@ namespace ServiceMayChuWeb
                                 key_index = j,
                                 pharse = Pharse.BUILD_SINH_KHOA_CONG_KHAI,
                                 secret = secret.ToString(),
-                                point = PointPharseContent.Map(pub_in_affine),
+                                point = PointPharseContent.Map(pub),
                             };
                             user_key.AutoId().SetMetaData();
                             list_user_key.Add(user_key);
@@ -200,37 +192,38 @@ namespace ServiceMayChuWeb
                         });
                     });
                     sw.Stop();
-                    //PharseContentRepository.Instance.IndexMany(list_user_key);
                     NoteCRM crm = new NoteCRM()
                     {
                         users = users,
                         news = movies,
-                        time_complete = sw.ElapsedMilliseconds / 60000,
+                        time_complete = sw.ElapsedMilliseconds,
                         pharse = Pharse.BUILD_SINH_KHOA_CONG_KHAI
                     };
                     crm.SetMetaData();
                     NoteCRMRepository.Instance.Index(crm);
-                    //IEnumerable<object> send_data = list_user_key.Select(x => new
-                    IEnumerable<object> send_data = khoa_cong_khai.Select(x => new
+                    if (list_user_key.Any())
                     {
-                        x.user_id,
-                        x.total_movies,
-                        x.total_users,
-                        x.user_index,
-                        x.key_index,
-                        x.point,
-                        x.pharse,
-                        x.id,
-                    });
-                    if (send_data != null && send_data.Any())
-                    {
-                        await _postRequest(_url_api_receive, send_data);
+                        PharseContentRepository.Instance.IndexMany(list_user_key);
+                        IEnumerable<object> send_data = khoa_cong_khai.Select(x => new
+                        {
+                            x.user_id,
+                            x.total_movies,
+                            x.total_users,
+                            x.user_index,
+                            x.key_index,
+                            x.point,
+                            x.pharse,
+                            x.id,
+                        });
+                        if (send_data != null && send_data.Any())
+                        {
+                            await _postRequest(_url_api_receive, send_data);
+                        }
+                        //WriteFile(_key_user_prv, string.Join(Environment.NewLine, concurrent_1), false);
+                        //WriteFile(_key_user_pub, string.Join(Environment.NewLine, concurrent_2), false);
+                        //Clear(concurrent_1);
+                        //Clear(concurrent_2);
                     }
-
-                    WriteFile(_key_user_prv, string.Join(Environment.NewLine, concurrent_1), false);
-                    WriteFile(_key_user_pub, string.Join(Environment.NewLine, concurrent_2), false);
-                    Clear(concurrent_1);
-                    Clear(concurrent_2);
                 }
                 catch (Exception ex)
                 {
@@ -261,16 +254,10 @@ namespace ServiceMayChuWeb
                         ConcurrentMultikeysDictionary<string, long, BigInteger> ksuij = new ConcurrentMultikeysDictionary<string, long, BigInteger>();
                         Parallel.ForEach(khoa_cong_khai, ksu =>
                         {
-                            bool is_added = ksuij.TryAdd(ksu.user_id, ksu.key_index, BigInteger.Parse(ksu.secret, System.Globalization.NumberStyles.Number));
-                            if (!is_added)
-                            {
-                                throw new Exception();
-                            }
+                            ksuij.TryAdd(ksu.user_id, ksu.key_index, BigInteger.Parse(ksu.secret, System.Globalization.NumberStyles.Number));
                         });
 
                         ConcurrentBag<PharseContent> ma_hoa_xep_hang = new ConcurrentBag<PharseContent>();
-
-                        ConcurrentDictionary<long, EiSiPoint> dic_repeated = new ConcurrentDictionary<long, EiSiPoint>();
 
                         Parallel.ForEach(dsach_id_tai_khoan, (user_id) =>
                         {
@@ -282,21 +269,16 @@ namespace ServiceMayChuWeb
                                     try
                                     {
                                         int rate = Rns[user_id, j];
-                                        if (!dic_repeated.TryGetValue(rate, out EiSiPoint p1))
-                                        {
-                                            p1 = EiSiPoint.Multiply(rate, G);
-                                            dic_repeated.TryAdd(rate, p1);
-                                        }
+                                        EiSiPoint p1 = EiSiPoint.Multiply(rate, G);
                                         ECCBase16.EiSiPoint p2 = EiSiPoint.Base16Multiplicands(ksuij[user_id, k], KPj[t]);
                                         ECCBase16.EiSiPoint p3 = EiSiPoint.Base16Multiplicands(ksuij[user_id, t], KPj[k]);
                                         ECCBase16.EiSiPoint p4 = EiSiPoint.Subtract(EiSiPoint.Addition(p1, p2), p3);
                                         ECCBase16.AffinePoint p5 = EiSiPoint.ToAffine(p4);
-                                        concurrent_1.Add(string.Format("{0},{1},{2}", user_id, j, p5.ToString()));
+                                        //concurrent_1.Add(string.Format("{0},{1},{2}", user_id, j, p5.ToString()));
                                         PharseContent pharse_content = new PharseContent
                                         {
                                             total_users = users,
                                             total_movies = movies,
-                                            //user_index = i,
                                             user_id = user_id,
                                             key_index = j,
                                             point = PointPharseContent.Map(p5),
@@ -309,44 +291,42 @@ namespace ServiceMayChuWeb
                                     }
                                     catch (Exception ex)
                                     {
-
                                         throw;
                                     }
-
                                 }
                                 if (j == ns - 1) break;
                             }
                         });
                         sw.Stop();
-                        if (ma_hoa_xep_hang.Any())
-                        {
-                            PharseContentRepository.Instance.IndexMany(ma_hoa_xep_hang);
-                        }
                         NoteCRM crm = new NoteCRM()
                         {
                             users = users,
                             news = movies,
-                            time_complete = sw.ElapsedMilliseconds / 60000,
+                            time_complete = sw.ElapsedMilliseconds,
                             pharse = Pharse.BUILD_MA_HOA_XEP_HANG,
                         };
                         NoteCRMRepository.Instance.Index(crm);
-                        IEnumerable<object> send_data = ma_hoa_xep_hang.Select(x => new
+                        if (ma_hoa_xep_hang.Any())
                         {
-                            x.total_movies,
-                            x.total_users,
-                            x.point,
-                            x.pharse,
-                            x.user_index,
-                            x.key_index,
-                            x.id,
-                            x.user_id,
-                        });
-                        if (send_data != null && send_data.Any())
-                        {
-                            await _postRequest(_url_api_receive, send_data);
+                            PharseContentRepository.Instance.IndexMany(ma_hoa_xep_hang);
+                            IEnumerable<object> send_data = ma_hoa_xep_hang.Select(x => new
+                            {
+                                x.total_movies,
+                                x.total_users,
+                                x.point,
+                                x.pharse,
+                                x.user_index,
+                                x.key_index,
+                                x.id,
+                                x.user_id,
+                            });
+                            if (send_data != null && send_data.Any())
+                            {
+                                await _postRequest(_url_api_receive, send_data);
+                            }
+                            //WriteFile(_encrypt, string.Join(Environment.NewLine, concurrent_1), false);
+                            //Clear(concurrent_1);
                         }
-                        WriteFile(_encrypt, string.Join(Environment.NewLine, concurrent_1), false);
-                        Clear(concurrent_1);
                     }
                     else
                     {
@@ -428,10 +408,8 @@ namespace ServiceMayChuWeb
                     long last_sugg = XMedia.XUtil.TimeInEpoch(DateTime.Now.Subtract(TimeSpan.FromHours(5)));
                     List<TaiKhoan> dsach_tai_khoan = TaiKhoanRepository.Instance.GetLastSuggestion(last_sugg, 1, 99999, out _, new string[] { "username" });
                     IEnumerable<string> dsach_usernames = dsach_tai_khoan.Select(x => x.username);
-                    EiSiPoint G = AffinePoint.ToEiSiPoint(_curve.G);
+
                     Dictionary<string, EiSiPoint> user_public_keys = new Dictionary<string, EiSiPoint>();
-
-
                     List<UserRate> user_rates = UserRateRepository.Instance.GetUserRate(dsach_tai_khoan.Select(x => x.username));
                     List<Phim> dsach_movies = PhimRepository.Instance.GetAll(out movies, 1, 99999, new string[] { "id", "index" });
                     IEnumerable<string> dsach_movie_id = dsach_movies.Select(x => x.id);
@@ -475,10 +453,9 @@ namespace ServiceMayChuWeb
                                 EiSiPoint p1 = EiSiPoint.Base16Multiplicands(movie_rate.Value, G);
                                 EiSiPoint p2 = EiSiPoint.Base16Multiplicands(cj, user_key.Value);
                                 EiSiPoint C1j = EiSiPoint.Addition(p1, p2);
-                                EiSiPoint C2j = EiSiPoint.Base16Multiplicands(cj, G);
 
                                 AffinePoint C1j_affine = EiSiPoint.ToAffine(C1j);
-                                AffinePoint C2j_affine = EiSiPoint.ToAffine(C2j);
+                                AffinePoint C2j_affine = EiSiPoint.MulBase16Aff(cj, G);
 
                                 PharseContent pharse = new PharseContent()
                                 {
@@ -488,7 +465,7 @@ namespace ServiceMayChuWeb
                                     movie_id = movie_rate.Key,
                                     pharse = Pharse.SUGGEST_MA_HOA_VECTOR,
                                     Xi = PointPharseContent.Map(Xi),
-                                    key_index=key_index,
+                                    key_index = key_index,
                                 };
                                 pharse.AutoId().SetMetaData();
                                 pharse_ma_hoa.Add(pharse);
@@ -512,7 +489,7 @@ namespace ServiceMayChuWeb
                             x.id,
                             x.Xi,
                         });
-                        if (send_data != null && send_data.Any())
+                        if (send_data.Any())
                         {
                             await _postRequest(_url_api_receive, send_data);
                         }
@@ -520,12 +497,10 @@ namespace ServiceMayChuWeb
                 }
                 catch (Exception ex)
                 {
-
-                    throw;
+                    _logger.Error(ex);
                 }
                 _is_running_suggest = false;
             }
         }
-
     }
 }

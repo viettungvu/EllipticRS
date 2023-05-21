@@ -304,31 +304,72 @@ namespace RSService
                     {
                         sw.Start();
                         ConcurrentBag<PharseContent> list = new ConcurrentBag<PharseContent>();
-                        Parallel.For(0, users, (i) =>
-                        {
-                            Parallel.For(0, nk, (j) =>
-                            {
-                                BigInteger secret = ECCBase16.Numerics.RandomBetween(1, _curve.N - 1);
-                                ksuij[i, j] = secret;
-                                ECCBase16.EiSiPoint pub = EiSiPoint.Base16Multiplicands(secret, G);
-                                concurrent_1.Add(string.Format("{0},{1},{2}", i, j, secret));
-                                AffinePoint pub_in_affine = EiSiPoint.ToAffine(pub);
-                                concurrent_2.Add(string.Format("{0},{1},{2}", i, j, pub_in_affine.ToString()));
 
-                                PharseContent content = new PharseContent()
+                        for (int i = 0; i < users; i++)
+                        {
+                            for (int j = 0; j < nk; j++)
+                            {
+                                try
                                 {
-                                    user_id = i.ToString(),
-                                    key_index = j,
-                                    secret = secret.ToString(),
-                                    point = PointPharseContent.Map(pub_in_affine),
-                                    pharse = Pharse.BUILD_SINH_KHOA_CONG_KHAI,
-                                    total_movies = movies,
-                                    total_users = users,
-                                };
-                                content.AutoId().SetMetaData();
-                                list.Add(content);
-                            });
-                        });
+                                    BigInteger secret = ECCBase16.Numerics.RandomBetween(1, _curve.N - 1);
+                                    ksuij[i, j] = secret;
+                                    AffinePoint pub_in_affine = EiSiPoint.MulBase16Aff(secret, G);
+                                    concurrent_1.Add(string.Format("{0},{1},{2}", i, j, secret));
+                                    concurrent_2.Add(string.Format("{0},{1},{2}", i, j, pub_in_affine.ToString()));
+
+                                    PharseContent content = new PharseContent()
+                                    {
+                                        user_id = i.ToString(),
+                                        key_index = j,
+                                        secret = secret.ToString(),
+                                        point = PointPharseContent.Map(pub_in_affine),
+                                        pharse = Pharse.BUILD_SINH_KHOA_CONG_KHAI,
+                                        total_movies = movies,
+                                        total_users = users,
+                                    };
+                                    content.AutoId().SetMetaData();
+                                    list.Add(content);
+                                }
+                                catch (Exception ex)
+                                {
+
+
+                                }
+                            }
+                        }
+                        //Parallel.For(0, users, (i) =>
+                        //{
+                        //    Parallel.For(0, nk, (j) =>
+                        //    {
+                        //        try
+                        //        {
+                        //            BigInteger secret = ECCBase16.Numerics.RandomBetween(1, _curve.N - 1);
+                        //            ksuij[i, j] = secret;
+                        //            AffinePoint pub_in_affine = EiSiPoint.MulBase16Aff(secret, G);
+                        //            concurrent_1.Add(string.Format("{0},{1},{2}", i, j, secret));
+                        //            concurrent_2.Add(string.Format("{0},{1},{2}", i, j, pub_in_affine.ToString()));
+
+                        //            PharseContent content = new PharseContent()
+                        //            {
+                        //                user_id = i.ToString(),
+                        //                key_index = j,
+                        //                secret = secret.ToString(),
+                        //                point = PointPharseContent.Map(pub_in_affine),
+                        //                pharse = Pharse.BUILD_SINH_KHOA_CONG_KHAI,
+                        //                total_movies = movies,
+                        //                total_users = users,
+                        //            };
+                        //            content.AutoId().SetMetaData();
+                        //            list.Add(content);
+                        //        }
+                        //        catch (Exception ex)
+                        //        {
+
+
+                        //        }
+
+                        //    });
+                        //});
                         sw.Stop();
                         NoteCRM crm = new NoteCRM()
                         {
@@ -367,26 +408,8 @@ namespace RSService
                             string[] values = line.Split(',');
                             KPUij[int.Parse(values[0]), int.Parse(values[1])] = new EiSiPoint(BigInteger.Parse(values[2]), BigInteger.Parse(values[3]), 1, _curve);
                         });
-
-
                         sw.Reset();
                         sw.Start();
-
-                        //for (int j = 0; j < nk; j++)
-                        //{
-                        //    EiSiPoint KPj = EiSiPoint.InfinityPoint;
-                        //    for (int i = 0; i < users; i++)
-                        //    {
-                        //        //ECCBase16.AffinePoint p1 = EiSiPoint.ToAffine(KPj);
-                        //        //ECCBase16.AffinePoint p2 = EiSiPoint.ToAffine(KPUij[i, j]);
-                        //        EiSiPoint temp = KPj;
-                        //        KPj = EiSiPoint.Addition(temp, KPUij[i, j]);
-                        //        //ECCBase16.AffinePoint px = EiSiPoint.ToAffine(KPj);
-                        //        //concurrent_test.Add(string.Format("({0}) + ({1})=({2})", p1.ToString(), p2.ToString(), px.ToString()));
-                        //    }
-                        //    ECCBase16.AffinePoint p = EiSiPoint.ToAffine(KPj);
-                        //    concurrent_1.Add(string.Format("{0},{1}", j, p.ToString()));
-                        //}
                         Parallel.For(0, nk, j =>
                         {
                             EiSiPoint KPj = EiSiPoint.InfinityPoint;
@@ -415,7 +438,6 @@ namespace RSService
                     {
                         throw;
                     }
-
                 }
                 #endregion
 
@@ -450,38 +472,6 @@ namespace RSService
                         sw.Reset();
                         sw.Start();
                         ConcurrentDictionary<int, EiSiPoint> dic_repeated = new ConcurrentDictionary<int, EiSiPoint>();
-
-                        //for (int i = 0; i < users; i++)
-                        //{
-                        //    int j = 0;
-                        //    for (int t = 0; t < nk - 1; t++)
-                        //    {
-                        //        for (int k = t + 1; k < nk; k++)
-                        //        {
-                        //            //if (!dic_repeated.TryGetValue(Rns[i, j], out EiSiPoint p1))
-                        //            //{
-                        //            //    p1 = EiSiPoint.Multiply(Rns[i, j], G);
-                        //            //    dic_repeated.TryAdd(Rns[i, j], p1);
-                        //            //    //concurrent_test.Add(string.Format("{0}*({1})=({2})", Rns[i, j], _curve.G.ToString(), EiSiPoint.ToAffine(p1).ToString()));
-                        //            //}
-                        //            EiSiPoint p1 = EiSiPoint.Multiply(Rns[i, j], G);
-                        //            ECCBase16.EiSiPoint p2 = EiSiPoint.Base16Multiplicands(ksuij[i, k], KPj[t]);
-                        //            ECCBase16.EiSiPoint p3 = EiSiPoint.Base16Multiplicands(ksuij[i, t], KPj[k]);
-
-                        //            //var p1_aff = EiSiPoint.ToAffine(p1);
-                        //            //var p2_aff = EiSiPoint.ToAffine(p2);
-                        //            //var p3_aff = EiSiPoint.ToAffine(p3);
-                        //            var tmp = EiSiPoint.ToAffine(EiSiPoint.Addition(p1, p2));
-                        //            ECCBase16.EiSiPoint p4 = EiSiPoint.Subtract(EiSiPoint.Addition(p1, p2), p3);
-
-                        //            ECCBase16.AffinePoint p5 = EiSiPoint.ToAffine(p4);
-                        //            concurrent_1.Add(string.Format("{0},{1},{2}", i, j, p5.ToString()));
-                        //            if (j == ns - 1) break;
-                        //            else j++;
-                        //        }
-                        //        if (j == ns - 1) break;
-                        //    }
-                        //}
                         Parallel.For(0, users, i =>
                         {
                             int j = 0;
@@ -489,17 +479,11 @@ namespace RSService
                             {
                                 for (int k = t + 1; k < nk; k++)
                                 {
-                                    if (!dic_repeated.TryGetValue(Rns[i, j], out EiSiPoint p1))
-                                    {
-                                        p1 = EiSiPoint.Multiply(Rns[i, j], G);
-                                        dic_repeated.TryAdd(Rns[i, j], p1);
-                                    }
+                                    EiSiPoint p1 = EiSiPoint.Multiply(Rns[i, j], G);
                                     ECCBase16.EiSiPoint p2 = EiSiPoint.Base16Multiplicands(ksuij[i, k], KPj[t]);
                                     ECCBase16.EiSiPoint p3 = EiSiPoint.Base16Multiplicands(ksuij[i, t], KPj[k]);
 
-                                    var tmp = EiSiPoint.ToAffine(EiSiPoint.Addition(p1, p2));
                                     ECCBase16.EiSiPoint p4 = EiSiPoint.Subtract(EiSiPoint.Addition(p1, p2), p3);
-
                                     ECCBase16.AffinePoint p5 = EiSiPoint.ToAffine(p4);
                                     concurrent_1.Add(string.Format("{0},{1},{2}", i, j, p5.ToString()));
                                     if (j == ns - 1) break;
@@ -518,8 +502,6 @@ namespace RSService
                         };
                         crm.SetProp();
                         NoteCRMRepository.Instance.Index(crm);
-
-
 
                         WriteFile(_encrypt, string.Join(Environment.NewLine, concurrent_1), false);
                         Clear(concurrent_1);
@@ -682,10 +664,9 @@ namespace RSService
                     EiSiPoint p1 = EiSiPoint.Base16Multiplicands(Ri[0, j] * 10, G);
                     EiSiPoint p2 = EiSiPoint.Base16Multiplicands(cj, AffinePoint.ToEiSiPoint(Xi));
                     EiSiPoint C1j = EiSiPoint.Addition(p1, p2);
-                    EiSiPoint C2j = EiSiPoint.Base16Multiplicands(cj, G);
 
                     AffinePoint C1j_affine = EiSiPoint.ToAffine(C1j);
-                    AffinePoint C2j_affine = EiSiPoint.ToAffine(C2j);
+                    AffinePoint C2j_affine = EiSiPoint.MulBase16Aff(cj, G);
 
                     concurrent_1.Add(string.Format("{0},{1}", j, C1j_affine.ToString()));
                     concurrent_2.Add(string.Format("{0},{1}", j, C2j_affine.ToString()));
@@ -700,20 +681,7 @@ namespace RSService
                 };
                 crm.SetProp();
                 NoteCRMRepository.Instance.Index(crm);
-                //for (int j = 0; j < movies; j++)
-                //{
-                //    BigInteger cj = ECCBase16.Numerics.RandomBetween(1, _curve.N - 1);
-                //    EiSiPoint p1 = EiSiPoint.Base16Multiplicands(Ri[0, j] * 10, G);
-                //    EiSiPoint p2 = EiSiPoint.Base16Multiplicands(cj, AffinePoint.ToEiSiPoint(Xi));
-                //    EiSiPoint C1j = EiSiPoint.Addition(p1, p2);
-                //    EiSiPoint C2j = EiSiPoint.Base16Multiplicands(cj, G);
 
-                //    AffinePoint C1j_affine = EiSiPoint.ToAffine(C1j);
-                //    AffinePoint C2j_affine = EiSiPoint.ToAffine(C2j);
-
-                //    concurrent_1.Add(string.Format("{0},{1}", j, C1j_affine.ToString()));
-                //    concurrent_2.Add(string.Format("{0},{1}", j, C2j_affine.ToString()));
-                //}
                 WriteFile(_cf_cipher_user_part_1, string.Join(Environment.NewLine, concurrent_1), false);
                 WriteFile(_cf_cipher_user_part_2, string.Join(Environment.NewLine, concurrent_2), false);
                 Clear(concurrent_1);
@@ -798,49 +766,6 @@ namespace RSService
                     f11[k] = EiSiPoint.Addition(EiSiPoint.Base16Multiplicands(c1, AffinePoint.ToEiSiPoint(Xi)), sum_f11);
                 });
 
-
-                //for (int k = 0; k < movies; k++)
-                //{
-                //    EiSiPoint sum5 = EiSiPoint.InfinityPoint;
-                //    BigInteger c2 = ECCBase16.Numerics.RandomBetween(1, _curve.N - 1);
-                //    BigInteger c3 = ECCBase16.Numerics.RandomBetween(1, _curve.N - 1);
-                //    for (int j = k; j < movies; j++)
-                //    {
-                //        EiSiPoint skj_g = EiSiPoint.Base16Multiplicands(sim_rounded[k, j], G);
-                //        sum5 = EiSiPoint.Addition(sum5, skj_g);
-                //    }
-                //    EiSiPoint f5k = EiSiPoint.Addition(EiSiPoint.Multiply(rate_round_avg[k], sum5), EiSiPoint.Base16Multiplicands(c2, AffinePoint.ToEiSiPoint(Xi)));
-                //    EiSiPoint f6k = EiSiPoint.Base16Multiplicands(c2, G);
-                //    EiSiPoint f7k = EiSiPoint.Addition(EiSiPoint.Multiply(rate_round_avg[k], G), EiSiPoint.Base16Multiplicands(c3, AffinePoint.ToEiSiPoint(Xi)));
-                //    EiSiPoint f8k = EiSiPoint.Base16Multiplicands(c3, G);
-
-
-                //    EiSiPoint sum_f9k = EiSiPoint.InfinityPoint;
-                //    for (int j = k; j < movies; j++)
-                //    {
-                //        EiSiPoint p = EiSiPoint.Multiply(sim_rounded[k, j], EiSiPoint.Subtract(ctext_part_1[j], f7k));
-                //        sum_f9k = EiSiPoint.Addition(sum_f9k, p);
-                //    }
-
-                //    f9[k] = EiSiPoint.Addition(f5k, sum_f9k);
-
-                //    EiSiPoint sum_f10k = EiSiPoint.InfinityPoint;
-                //    for (int j = k; j < movies; j++)
-                //    {
-                //        EiSiPoint p = EiSiPoint.Multiply(sim_rounded[k, j], EiSiPoint.Subtract(ctext_part_2[j], f8k));
-                //        sum_f10k = EiSiPoint.Addition(sum_f10k, p);
-                //    }
-                //    f10[k] = EiSiPoint.Addition(f6k, sum_f10k);
-
-                //    EiSiPoint sum_f11 = EiSiPoint.InfinityPoint;
-                //    for (int j = k; j < movies; j++)
-                //    {
-                //        EiSiPoint p = EiSiPoint.Multiply(sim_rounded[k, j], G);
-                //        sum_f11 = EiSiPoint.Addition(sum_f11, p);
-                //    }
-
-                //    f11[k] = EiSiPoint.Addition(EiSiPoint.Base16Multiplicands(c1, AffinePoint.ToEiSiPoint(Xi)), sum_f11);
-                //}
                 EiSiPoint f12 = EiSiPoint.Base16Multiplicands(c1, G);
                 sw.Stop();
                 crm = new NoteCRM()
@@ -886,6 +811,7 @@ namespace RSService
                 ///
                 sw.Reset();
                 sw.Start();
+               
                 Parallel.For(0, movies, (k) =>
                 {
                     EiSiPoint Ck = EiSiPoint.Subtract(f9[k], EiSiPoint.Base16Multiplicands(xi, f10[k]));
@@ -898,19 +824,6 @@ namespace RSService
                     long dk = Logarit(tmp_ck);
                     concurrent_1.Add(String.Format("{0},{1},{2},{3},{4}", 0, k, dk, d, (double)dk / d));
                 });
-                //for (int k = 0; k < movies; k++)
-                //{
-                //    EiSiPoint Ck = EiSiPoint.Subtract(f9[k], EiSiPoint.Base16Multiplicands(xi, f10[k]));
-                //    EiSiPoint C6 = EiSiPoint.Subtract(f11[k], EiSiPoint.Base16Multiplicands(xi, f12));
-
-
-                //    AffinePoint tmp_c6 = EiSiPoint.ToAffine(C6);
-                //    AffinePoint tmp_ck = EiSiPoint.ToAffine(Ck);
-                //    long d = Logarit(tmp_c6);
-
-                //    long dk = Logarit(tmp_ck);
-                //    concurrent_1.Add(String.Format("{0},{1},{2},{3},{4}", 0, k, dk, d, (double)dk / d));
-                //}
                 sw.Stop();
                 crm = new NoteCRM()
                 {
@@ -1073,7 +986,7 @@ namespace RSService
 
 
         private static ConcurrentDictionary<long, AffinePoint> _cache_affine = new ConcurrentDictionary<long, AffinePoint>();
-        private static ConcurrentDictionary<long, EiSiPoint> _cache_affine_2 = new ConcurrentDictionary<long, EiSiPoint>();
+
         public static long Logarit(AffinePoint p)
         {
             try
@@ -1084,40 +997,41 @@ namespace RSService
                     return exist.Key;
                 }
                 AffinePoint sum = AffinePoint.InfinityPoint;
-                EiSiPoint mul = EiSiPoint.InfinityPoint;
-
-                EiSiPoint G = AffinePoint.ToEiSiPoint(_curve.G);
-                for (long i = 0; i < 10000 * movies; i++)
+                long max = 10000 * movies;
+                for (long i = 0; i <= max; i++)
                 {
-                    if (_cache_affine.TryGetValue(i, out AffinePoint val))
+                    if (_cache_affine.TryGetValue(i, out AffinePoint s))
                     {
-                        if (val.X == p.X && val.Y == p.Y)
-                        {
-                            return i;
-
-                        }
+                        sum = s;
                     }
                     else
                     {
-                        if (sum.X == p.X && sum.Y == p.Y)
-                        {
-                            return i;
-                        }
-                        else
-                        {
-                            sum = AffinePoint.Addition(sum, _curve.G);
-                            _cache_affine.TryAdd(i, sum);
-                        }
+                        sum = AffinePoint.Addition(sum, _curve.G);
+                        _cache_affine.TryAdd(i, sum);
                     }
-                    //if (sum.X == p.X && sum.Y == p.Y)
+                    if (sum.X == p.X && sum.Y == p.Y)
+                    {
+                        return i;
+                    }
+
+                    //if (_cache_affine.TryGetValue(i, out AffinePoint val))
                     //{
-                    //    return i;
+                    //    if (val.X == p.X && val.Y == p.Y)
+                    //    {
+                    //        return i;
+                    //    }
                     //}
                     //else
                     //{
-                    //    mul = EiSiPoint.Base16Multiplicands(i, G);
-                    //    sum = EiSiPoint.ToAffine(mul);
-                    //    _cache_affine.TryAdd(i, sum);
+                    //    if (sum.X == p.X && sum.Y == p.Y)
+                    //    {
+                    //        return i;
+                    //    }
+                    //    else
+                    //    {
+                    //        sum = AffinePoint.Addition(sum, _curve.G);
+                    //        _cache_affine.TryAdd(i, sum);
+                    //    }
                     //}
                 }
             }

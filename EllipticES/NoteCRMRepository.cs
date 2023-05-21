@@ -39,7 +39,8 @@ namespace RSES
 
         public bool Index(NoteCRM data)
         {
-            return Index<NoteCRM>(_default_index, data, "", data.id);
+            return false;
+            //return Index<NoteCRM>(_default_index, data, "", data.id);
         }
 
         public List<NoteCRM> GetAll(int thuoc_tinh)

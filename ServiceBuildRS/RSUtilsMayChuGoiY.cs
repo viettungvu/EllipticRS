@@ -73,11 +73,7 @@ namespace ServiceBuildRS
 
                             Parallel.ForEach(khoa_cong_khai, item =>
                             {
-                                bool added = KPUij.TryAdd(item.user_id, item.key_index, PointPharseContent.ToEiSiPoint(item.point, _curve));
-                                if (!added)
-                                {
-                                    throw new Exception();
-                                }
+                                KPUij.TryAdd(item.user_id, item.key_index, PointPharseContent.ToEiSiPoint(item.point, _curve));
                                 _dsach_id_tai_khoan.Add(item.user_id);
                             });
 
@@ -92,7 +88,7 @@ namespace ServiceBuildRS
                                     KPj = EiSiPoint.Addition(tmp, KPUij[user_id, j]);
                                 }
                                 ECCBase16.AffinePoint sum = EiSiPoint.ToAffine(KPj);
-                                concurrent_1.Add(string.Format("{0},{1}", j, sum.ToString()));
+                                //concurrent_1.Add(string.Format("{0},{1}", j, sum.ToString()));
                                 PharseContent user_key = new PharseContent()
                                 {
                                     total_movies = movies,
@@ -105,36 +101,35 @@ namespace ServiceBuildRS
                                 khoa_dung_chung.Add(user_key);
                             });
                             sw.Stop();
-                            WriteFile(_key_common, string.Join(Environment.NewLine, concurrent_1), false);
-                            Clear(concurrent_1);
+                           // WriteFile(_key_common, string.Join(Environment.NewLine, concurrent_1), false);
+                            //Clear(concurrent_1);
                             if (khoa_dung_chung.Any())
                             {
                                 PharseContentRepository.Instance.IndexMany(khoa_dung_chung);
+                                IEnumerable<object> send_data = khoa_dung_chung.Select(x => new
+                                {
+                                    x.key_index,
+                                    x.point,
+                                    x.pharse,
+                                    x.id,
+                                    x.user_id,
+                                    x.total_movies,
+                                    x.total_users,
+                                });
+                                if (send_data != null && send_data.Any())
+                                {
+                                    await _sendRequest(_url_api_receive, send_data);
+                                }
                             }
                             NoteCRM crm = new NoteCRM()
                             {
                                 users = users,
                                 news = movies,
-                                time_complete = sw.ElapsedMilliseconds / 1000,
+                                time_complete = sw.ElapsedMilliseconds,
                                 pharse = Pharse.BUILD_SINH_KHOA_DUNG_CHUNG,
                             };
                             crm.SetMetaData();
                             NoteCRMRepository.Instance.Index(crm);
-
-                            IEnumerable<object> send_data = khoa_dung_chung.Select(x => new
-                            {
-                                x.key_index,
-                                x.point,
-                                x.pharse,
-                                x.id,
-                                x.user_id,
-                                x.total_movies,
-                                x.total_users,
-                            });
-                            if (send_data != null && send_data.Any())
-                            {
-                                await _sendRequest(_url_api_receive, send_data);
-                            }
                         }
                     }
                     catch (Exception ex)
@@ -180,7 +175,7 @@ namespace ServiceBuildRS
                                 sum = EiSiPoint.Addition(tmp, AffinePoint.ToEiSiPoint(AUij[user_id, j]));
                             }
                             AffinePoint affine = EiSiPoint.ToAffine(sum);
-                            concurrent_1.Add(string.Format("{0},{1}", j, affine.ToString()));
+                            //concurrent_1.Add(string.Format("{0},{1}", j, affine.ToString()));
                             PharseContent pharse_4 = new PharseContent
                             {
                                 key_index = j,
@@ -191,50 +186,50 @@ namespace ServiceBuildRS
                             tong_bao_mat.Add(pharse_4);
                         });
                         sw.Stop();
-                        WriteFile(_sum_encrypt, string.Join(Environment.NewLine, concurrent_1), false);
-                        Clear(concurrent_1);
-                        if (tong_bao_mat.Any())
-                        {
-                            PharseContentRepository.Instance.IndexMany(tong_bao_mat);
-                        }
+                        //WriteFile(_sum_encrypt, string.Join(Environment.NewLine, concurrent_1), false);
+                        //Clear(concurrent_1);
                         NoteCRM crm = new NoteCRM()
                         {
                             users = users,
                             news = movies,
-                            time_complete = sw.ElapsedMilliseconds / 1000,
+                            time_complete = sw.ElapsedMilliseconds,
                             pharse = Pharse.BUILD_TINH_TONG_BAO_MAT,
                         };
                         crm.SetMetaData();
                         NoteCRMRepository.Instance.Index(crm);
-                        try
+                        if (tong_bao_mat.Any())
                         {
-                            sw.Reset();
-                            sw.Start();
-                            AffinePoint[] Aj = new AffinePoint[ns];
-                            Parallel.ForEach(tong_bao_mat, aj =>
+                            PharseContentRepository.Instance.IndexMany(tong_bao_mat);
+                            try
                             {
-                                Aj[aj.key_index] = PointPharseContent.ToAffinePoint(aj.point, _curve);
-                            });
+                                sw.Reset();
+                                sw.Start();
+                                AffinePoint[] Aj = new AffinePoint[ns];
+                                Parallel.ForEach(tong_bao_mat, aj =>
+                                {
+                                    Aj[aj.key_index] = PointPharseContent.ToAffinePoint(aj.point, _curve);
+                                });
 
-                            int[] data_loga = _brfStandard(Aj, ns, _max * _max * users);
-                            WriteFile(_get_sum_encrypt, string.Join(";", data_loga), false);
-                            List<PharseContent> similary = _calculateSimilary(data_loga, movies);
-                            PharseContentRepository.Instance.IndexMany(similary);
-                            sw.Stop();
-                            NoteCRM cal_similar = new NoteCRM()
+                                int[] data_loga = _brfStandard(Aj, ns, _max * _max * users);
+                                //WriteFile(_get_sum_encrypt, string.Join(";", data_loga), false);
+                                List<PharseContent> similary = _calculateSimilary(data_loga, movies);
+                                PharseContentRepository.Instance.IndexMany(similary);
+                                sw.Stop();
+                                NoteCRM cal_similar = new NoteCRM()
+                                {
+                                    users = users,
+                                    news = movies,
+                                    time_complete = sw.ElapsedMilliseconds,
+                                    pharse = Pharse.CALCULATE_SIMILAR,
+                                };
+                                cal_similar.SetMetaData();
+                                NoteCRMRepository.Instance.Index(cal_similar);
+                            }
+                            catch (Exception ex)
                             {
-                                users = users,
-                                news = movies,
-                                time_complete = sw.ElapsedMilliseconds / 1000,
-                                pharse = Pharse.CALCULATE_SIMILAR,
-                            };
-                            cal_similar.SetMetaData();
-                            NoteCRMRepository.Instance.Index(cal_similar);
-                        }
-                        catch (Exception ex)
-                        {
-                            _is_running_pharse_4 = false;
-                            _logger.Error(ex);
+                                _is_running_pharse_4 = false;
+                                _logger.Error(ex);
+                            }
                         }
                     }
                     else
@@ -267,39 +262,36 @@ namespace ServiceBuildRS
             {
                 AffinePoint tmp = K_sum;
                 K_sum = AffinePoint.Addition(tmp, _curve.G);
-                for (int j = 0; j < ns; j++)
+                Parallel.For(0, ns, (j) =>
                 {
                     if (K_sum.X == Aj[j].X && K_sum.Y == Aj[j].Y)
                     {
                         result[j] = i + 1;
                     }
-                }
+                });
             }
             return result;
         }
         private static List<PharseContent> _calculateSimilary(int[] sum, long muc_tin)
         {
             List<PharseContent> data = new List<PharseContent>();
-            ConcurrentBag<string> bag = new ConcurrentBag<string>();
-            ConcurrentBag<string> bag_round = new ConcurrentBag<string>();
+            //ConcurrentBag<string> bag = new ConcurrentBag<string>();
+            //ConcurrentBag<string> bag_round = new ConcurrentBag<string>();
             double[] rate_avg = new double[muc_tin];
             try
             {
                 Parallel.For(0, muc_tin, j =>
                 {
                     rate_avg[j] = sum[j + muc_tin] == 0 ? 0 : (double)sum[j] / sum[j + muc_tin];
-                    bag.Add(string.Format("{0},{1}", j, rate_avg[j]));
+                    //bag.Add(string.Format("{0},{1}", j, rate_avg[j]));
                 });
-                WriteFile(_rate_avg, String.Join(Environment.NewLine, bag), false);
-                Clear(bag);
+                //WriteFile(_rate_avg, String.Join(Environment.NewLine, bag), false);
+                //Clear(bag);
             }
             catch (Exception ex)
             {
                 _logger.Error(ex);
             }
-
-
-
             double[,] sim = new double[muc_tin, muc_tin];
             int l = 0;
             try
@@ -310,8 +302,8 @@ namespace ServiceBuildRS
                     {
                         sim[j, k] = sum[3 * muc_tin + l] / (Math.Sqrt(sum[2 * muc_tin + j]) * Math.Sqrt(sum[2 * muc_tin + k]));
                         l++;
-                        bag.Add(String.Format("{0},{1},{2}", j, k, sim[j, k]));
-                        bag_round.Add(string.Format("{0},{1},{2}", j, k, (int)(sim[j, k] * 100)));
+                        //bag.Add(String.Format("{0},{1},{2}", j, k, sim[j, k]));
+                        //bag_round.Add(string.Format("{0},{1},{2}", j, k, (int)(sim[j, k] * 100)));
                         PharseContent pharse = new PharseContent()
                         {
                             user_id = j.ToString(),
@@ -325,8 +317,8 @@ namespace ServiceBuildRS
                         data.Add(pharse);
                     }
                 }
-                WriteFile(_sim, String.Join(Environment.NewLine, bag), false);
-                WriteFile(_sim_round, String.Join(Environment.NewLine, bag_round), false);
+                //WriteFile(_sim, String.Join(Environment.NewLine, bag), false);
+                //WriteFile(_sim_round, String.Join(Environment.NewLine, bag_round), false);
             }
             catch (Exception ex)
             {
@@ -405,7 +397,7 @@ namespace ServiceBuildRS
                     EiSiPoint sum_f1 = EiSiPoint.InfinityPoint;
                     EiSiPoint sum_f2 = EiSiPoint.InfinityPoint;
                     EiSiPoint sum_f3 = EiSiPoint.InfinityPoint;
-                    for (int j = k + 1; j < movie_count; j++)
+                    for (int j = k; j < movie_count; j++)
                     {
                         PharseContent sim = similar.Find(x => x.user_index == k && x.key_index == j);
                         int sim_round = sim != null ? (int)(sim.similary * 100) : 0;

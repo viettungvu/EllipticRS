@@ -388,6 +388,11 @@ namespace ECCBase16
         {
             return U.IsZero;
         }
+
+        public bool IsGPoint()
+        {
+            return Curve != null && Nx == Curve.G.X && Ny == Curve.G.Y && U.IsOne;
+        }
         public override string ToString()
         {
             return string.Format("{0},{1},{2}", Nx, Ny, U);
@@ -458,9 +463,7 @@ namespace ECCBase16
                     BigInteger Ny3 = Numerics.Modulo(W3 * (Nx1 * sqr_U2 * sqr_q3 - Nx3) - Ny1 * cube_U2 * cube_q3, p);
                     return new EiSiPoint(Nx3, Ny3, U3, point1.Curve);
                 }
-                // return EiSiPoint.InfinityPoint;
             }
-
         }
 
 
@@ -543,64 +546,114 @@ namespace ECCBase16
 
         public static EiSiPoint Multiply(BigInteger scalar, EiSiPoint point)
         {
-            if (point.Nx == point.Curve.G.X && point.Ny == point.Curve.G.Y)
+            if (scalar == 0 || point == null || point.IsInfinity())
             {
-                if (_cache_base.TryGetValue(scalar, out EiSiPoint val))
-                {
-                    return val;
-                }
-            }
-            EiSiPoint result = InfinityPoint;
-            if (scalar == 0 || point.IsInfinity())
-            {
-                result = InfinityPoint;
-            }
-            else if (scalar == 1)
-            {
-                result = point;
-            }
-            else if (scalar == 2)
-            {
-                result = Doubling(point);
-            }
-            else if (scalar < 0 || scalar > point.Curve.N)
-            {
-                result = Multiply(Numerics.Modulo(scalar, point.Curve.N), point);
-            }
-            else if (scalar.IsEven)
-            {
-                result = Doubling(Multiply(scalar / 2, point));
+                return EiSiPoint.InfinityPoint;
             }
             else
             {
-                result = Addition(Doubling(Multiply(scalar / 2, point)), point);
+                EiSiPoint result = InfinityPoint;
+                if (point.IsGPoint())
+                {
+                    if (_cache_base.TryGetValue(scalar, out EiSiPoint val))
+                    {
+                        result = val;
+                    }
+                    else
+                    {
+                        if (scalar == 1)
+                        {
+                            result = point;
+                        }
+                        else if (scalar == 2)
+                        {
+                            result = Doubling(point);
+                        }
+                        else if (scalar < 0 || scalar > point.Curve.N)
+                        {
+                            result = Multiply(Numerics.Modulo(scalar, point.Curve.N), point);
+                        }
+                        else if (scalar.IsEven)
+                        {
+                            result = Doubling(Multiply(scalar / 2, point));
+                        }
+                        else
+                        {
+                            result = Addition(Doubling(Multiply(scalar / 2, point)), point);
+                        }
+                        _cache_base.TryAdd(scalar, result);
+                    }
+                }
+                else
+                {
+                    if (scalar == 1)
+                    {
+                        result = point;
+                    }
+                    else if (scalar == 2)
+                    {
+                        result = Doubling(point);
+                    }
+                    else if (scalar < 0 || scalar > point.Curve.N)
+                    {
+                        result = Multiply(Numerics.Modulo(scalar, point.Curve.N), point);
+                    }
+                    else if (scalar.IsEven)
+                    {
+                        result = Doubling(Multiply(scalar / 2, point));
+                    }
+                    else
+                    {
+                        result = Addition(Doubling(Multiply(scalar / 2, point)), point);
+                    }
+                }
+                return result;
             }
-            _cache_base.TryAdd(scalar, result);
-            return result;
         }
 
 
         private static ConcurrentDictionary<BigInteger, EiSiPoint> _cache_base = new ConcurrentDictionary<BigInteger, EiSiPoint>();
         public static EiSiPoint Base16Multiplicands(BigInteger scalar, EiSiPoint point)
-       {
-            if (point != null)
+        {
+            if (scalar == 0 || point == null || point.IsInfinity())
             {
-                if (point.IsInfinity())
+                return EiSiPoint.InfinityPoint;
+            }
+            if (point.IsGPoint())
+            {
+                if (_cache_base.TryGetValue(scalar, out EiSiPoint val))
                 {
-                    return EiSiPoint.InfinityPoint;
+                    return val;
                 }
-                if (point.Nx == point.Curve.G.X && point.Ny == point.Curve.G.Y)
+                else
                 {
-                    if (_cache_base.TryGetValue(scalar, out EiSiPoint val))
+                    if (scalar <= 16)
                     {
-                        return val;
+                        return Multiply(scalar, point);
                     }
+
+                    Dictionary<BigInteger, EiSiPoint> _dic_calculated = new Dictionary<BigInteger, EiSiPoint>();
+                    List<int> key = Numerics.ToHexArray1(scalar);
+                    EiSiPoint output = EiSiPoint.InfinityPoint;
+                    for (int i = 0; i < key.Count; i++)
+                    {
+                        if (!_dic_calculated.TryGetValue(key[i], out EiSiPoint rP))
+                        {
+                            rP = EiSiPoint.Multiply(key[i], point);
+                            _dic_calculated.Add(key[i], rP);
+                        }
+                        output = 16 * output + rP;
+                    }
+                    _cache_base.TryAdd(scalar, output);
+                    return output;
                 }
+            }
+            else
+            {
                 if (scalar <= 16)
                 {
                     return Multiply(scalar, point);
                 }
-
                 Dictionary<BigInteger, EiSiPoint> _dic_calculated = new Dictionary<BigInteger, EiSiPoint>();
                 List<int> key = Numerics.ToHexArray1(scalar);
                 EiSiPoint output = EiSiPoint.InfinityPoint;
@@ -613,10 +666,133 @@ namespace ECCBase16
                     }
                     output = 16 * output + rP;
                 }
-                _cache_base.TryAdd(scalar, output);
                 return output;
             }
-            return EiSiPoint.InfinityPoint;
+        }
+
+
+        public static AffinePoint MulAff(BigInteger scalar, EiSiPoint point)
+        {
+            if (scalar == 0 || point == null || point.IsInfinity())
+            {
+                return AffinePoint.InfinityPoint;
+            }
+            else
+            {
+                EiSiPoint result = InfinityPoint;
+                if (point.IsGPoint())
+                {
+                    if (_cache_base.TryGetValue(scalar, out EiSiPoint val))
+                    {
+                        result = val;
+                    }
+                    else
+                    {
+                        if (scalar == 1)
+                        {
+                            result = point;
+                        }
+                        else if (scalar == 2)
+                        {
+                            result = Doubling(point);
+                        }
+                        else if (scalar < 0 || scalar > point.Curve.N)
+                        {
+                            result = Multiply(Numerics.Modulo(scalar, point.Curve.N), point);
+                        }
+                        else if (scalar.IsEven)
+                        {
+                            result = Doubling(Multiply(scalar / 2, point));
+                        }
+                        else
+                        {
+                            result = Addition(Doubling(Multiply(scalar / 2, point)), point);
+                        }
+                        _cache_base.TryAdd(scalar, result);
+                    }
+                }
+                else
+                {
+                    if (scalar == 1)
+                    {
+                        result = point;
+                    }
+                    else if (scalar == 2)
+                    {
+                        result = Doubling(point);
+                    }
+                    else if (scalar < 0 || scalar > point.Curve.N)
+                    {
+                        result = Multiply(Numerics.Modulo(scalar, point.Curve.N), point);
+                    }
+                    else if (scalar.IsEven)
+                    {
+                        result = Doubling(Multiply(scalar / 2, point));
+                    }
+                    else
+                    {
+                        result = Addition(Doubling(Multiply(scalar / 2, point)), point);
+                    }
+                }
+                return EiSiPoint.ToAffine(result);
+            }
+        }
+
+        public static AffinePoint MulBase16Aff(BigInteger scalar, EiSiPoint point)
+        {
+            if (scalar == 0 || point == null || point.IsInfinity())
+            {
+                return AffinePoint.InfinityPoint;
+            }
+            if (point.IsGPoint())
+            {
+                if (_cache_base.TryGetValue(scalar, out EiSiPoint val))
+                {
+                    return EiSiPoint.ToAffine(val);
+                }
+                else
+                {
+                    if (scalar <= 16)
+                    {
+                        return MulAff(scalar, point);
+                    }
+
+                    Dictionary<BigInteger, EiSiPoint> _dic_calculated = new Dictionary<BigInteger, EiSiPoint>();
+                    List<int> key = Numerics.ToHexArray1(scalar);
+                    EiSiPoint output = EiSiPoint.InfinityPoint;
+                    for (int i = 0; i < key.Count; i++)
+                    {
+                        if (!_dic_calculated.TryGetValue(key[i], out EiSiPoint rP))
+                        {
+                            rP = EiSiPoint.Multiply(key[i], point);
+                            _dic_calculated.Add(key[i], rP);
+                        }
+                        output = 16 * output + rP;
+                    }
+                    _cache_base.TryAdd(scalar, output);
+                    return EiSiPoint.ToAffine(output);
+                }
+            }
+            else
+            {
+                if (scalar <= 16)
+                {
+                    return MulAff(scalar, point);
+                }
+                Dictionary<BigInteger, EiSiPoint> _dic_calculated = new Dictionary<BigInteger, EiSiPoint>();
+                List<int> key = Numerics.ToHexArray1(scalar);
+                EiSiPoint output = EiSiPoint.InfinityPoint;
+                for (int i = 0; i < key.Count; i++)
+                {
+                    if (!_dic_calculated.TryGetValue(key[i], out EiSiPoint rP))
+                    {
+                        rP = EiSiPoint.Multiply(key[i], point);
+                        _dic_calculated.Add(key[i], rP);
+                    }
+                    output = 16 * output + rP;
+                }
+                return EiSiPoint.ToAffine(output);
+            }
         }
     }
 }
