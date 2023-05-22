@@ -16,20 +16,29 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Reference Include="Microsoft.Extensions.Configuration">
+      <HintPath>..\dll\Microsoft.Extensions.Configuration.dll</HintPath>
+    </Reference>
     <Reference Include="Microsoft.Extensions.Configuration.Abstractions">
-      <HintPath>D:\DLL\Microsoft.Extensions.Configuration.Abstractions.dll</HintPath>
+      <HintPath>..\dll\Microsoft.Extensions.Configuration.Abstractions.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.Configuration.FileExtensions">
+      <HintPath>..\dll\Microsoft.Extensions.Configuration.FileExtensions.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.Extensions.FileProviders.Abstractions">
-      <HintPath>D:\DLL\Microsoft.Extensions.FileProviders.Abstractions.dll</HintPath>
+      <HintPath>..\dll\Microsoft.Extensions.FileProviders.Abstractions.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.Extensions.FileProviders.Physical">
-      <HintPath>D:\DLL\Microsoft.Extensions.FileProviders.Physical.dll</HintPath>
+      <HintPath>..\dll\Microsoft.Extensions.FileProviders.Physical.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.Primitives">
+      <HintPath>..\dll\Microsoft.Extensions.Primitives.dll</HintPath>
     </Reference>
     <Reference Include="System.Memory">
       <HintPath>D:\DLL\System.Memory.dll</HintPath>
     </Reference>
     <Reference Include="XUtil">
-      <HintPath>D:\DLL\XUtil.dll</HintPath>
+      <HintPath>..\dll\XUtil.dll</HintPath>
     </Reference>
   </ItemGroup>
 

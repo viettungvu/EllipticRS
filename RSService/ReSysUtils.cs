@@ -64,7 +64,7 @@ namespace RSService
         //private static int movies = 200;
 
 
-        private static int users = 5;
+        private static int users = 50;
         private static int movies = 200;
         private static int ns = movies * (movies + 5) / 2;
         private static int nk = (int)Math.Ceiling(0.5 + Math.Sqrt(ns * 2 + 0.25));
@@ -75,8 +75,8 @@ namespace RSService
             AffinePoint K_sum = AffinePoint.InfinityPoint;
             for (int i = 0; i <= max; i++)
             {
-                AffinePoint tmp = K_sum;
-                K_sum = AffinePoint.Addition(tmp, _curve.G);
+                //AffinePoint tmp = K_sum;
+                K_sum = AffinePoint.Base16Multiplicands(i, _curve.G);
                 //ECCBase16.AffinePoint K_mul = ECCBase16.AffinePoint.InfinityPoint;
                 //K_mul = AffinePoint.Multiply(i + 1, _curve.G);
                 for (int j = 0; j < ns; j++)
@@ -85,35 +85,6 @@ namespace RSService
                     {
                         result[j] = i + 1;
                     }
-                }
-            }
-            return result;
-        }
-        public static int[] BRFEiSi(ECCBase16.EiSiPoint[] Aj, ECCBase16.Curve curve, int ns, int max)
-        {
-            int[] result = new int[ns];
-
-            ECCBase16.EiSiPoint K = ECCBase16.EiSiPoint.InfinityPoint;
-            EiSiPoint G = AffinePoint.ToEiSiPoint(curve.G);
-            int count = 0;
-            for (int i = 0; i < max; i++)
-            {
-                K = ECCBase16.EiSiPoint.Multiply(i, G);
-                for (int j = 0; j < ns; j++)
-                {
-                    if (K.Nx == Aj[j].Nx && K.Ny == Aj[j].Ny)
-                    {
-                        result[j] = i;
-                        count += 1;
-                        if (count == ns - 1)
-                        {
-                            break;
-                        }
-                    }
-                }
-                if (count == ns - 1)
-                {
-                    break;
                 }
             }
             return result;
@@ -1013,26 +984,6 @@ namespace RSService
                     {
                         return i;
                     }
-
-                    //if (_cache_affine.TryGetValue(i, out AffinePoint val))
-                    //{
-                    //    if (val.X == p.X && val.Y == p.Y)
-                    //    {
-                    //        return i;
-                    //    }
-                    //}
-                    //else
-                    //{
-                    //    if (sum.X == p.X && sum.Y == p.Y)
-                    //    {
-                    //        return i;
-                    //    }
-                    //    else
-                    //    {
-                    //        sum = AffinePoint.Addition(sum, _curve.G);
-                    //        _cache_affine.TryAdd(i, sum);
-                    //    }
-                    //}
                 }
             }
             catch (Exception ex)

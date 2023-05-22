@@ -35,6 +35,10 @@ namespace ECCBase16
             return new EiSiPoint(point.X, point.Y, 1, point.Curve);
         }
 
+        public bool IsGPoint()
+        {
+            return this.Curve != null && X == Curve.G.X && Y == Curve.G.Y;
+        }
 
         public static AffinePoint FastX4(AffinePoint point)
         {
@@ -227,44 +231,88 @@ namespace ECCBase16
         }
         public static AffinePoint Multiply(BigInteger scalar, AffinePoint point)
         {
-            if (point.Y.IsZero || scalar == 0)
+            if (scalar == 0 || point == null || point.Y.IsZero)
             {
                 return AffinePoint.InfinityPoint;
             }
-            if (scalar == 3)
+            if (point.IsGPoint())
             {
-                return FastX3(point);
-            }
-            else if (scalar == 4)
-            {
-                return FastX4(point);
-            }
-            else if (scalar == 8)
-            {
-                return FastX8(point);
-            }
-            else if (scalar == 16)
-            {
-                return FastX16(point);
-            }
+                if (_cache_base.TryGetValue(scalar, out AffinePoint val))
+                {
+                    return val;
+                }
+                else
+                {
+                    AffinePoint result = AffinePoint.InfinityPoint;
+                    if (scalar == 3)
+                    {
+                        result = FastX3(point);
+                    }
+                    else if (scalar == 4)
+                    {
+                        result = FastX4(point);
+                    }
+                    else if (scalar == 8)
+                    {
+                        result = FastX8(point);
+                    }
+                    else if (scalar == 16)
+                    {
+                        result = FastX16(point);
+                    }
 
+                    else
+                    {
+                        AffinePoint addend = point;
+                        while (scalar != 0)
+                        {
+                            if ((scalar & 1) == 1)
+                                result = Addition(result, addend);
+
+                            addend = Addition(addend, addend);
+
+                            scalar >>= 1;
+                        }
+                    }
+                    _cache_base.Add(scalar, result);
+                    return result;
+                }
+            }
             else
             {
                 AffinePoint result = AffinePoint.InfinityPoint;
-                AffinePoint addend = point;
-                while (scalar != 0)
+                if (scalar == 3)
                 {
-                    if ((scalar & 1) == 1)
-                        result = Addition(result, addend);
+                    result = FastX3(point);
+                }
+                else if (scalar == 4)
+                {
+                    result = FastX4(point);
+                }
+                else if (scalar == 8)
+                {
+                    result = FastX8(point);
+                }
+                else if (scalar == 16)
+                {
+                    result = FastX16(point);
+                }
 
-                    addend = Addition(addend, addend);
+                else
+                {
+                    AffinePoint addend = point;
+                    while (scalar != 0)
+                    {
+                        if ((scalar & 1) == 1)
+                            result = Addition(result, addend);
 
-                    scalar >>= 1;
+                        addend = Addition(addend, addend);
+
+                        scalar >>= 1;
+                    }
                 }
                 return result;
             }
-
-            //return AffinePoint.InfinityPoint;
         }
 
         public static AffinePoint Addition(AffinePoint first, AffinePoint second)
@@ -321,24 +369,61 @@ namespace ECCBase16
 
         public static AffinePoint Base16Multiplicands(BigInteger scalar, AffinePoint point)
         {
-            if (scalar <= 16)
+            if (scalar == 0 || point == null || IsInfinityPoint(point))
             {
-                return Multiply(scalar, point);
+                return AffinePoint.InfinityPoint;
             }
-
-            Dictionary<BigInteger, AffinePoint> _dic_calculated = new Dictionary<BigInteger, AffinePoint>();
-            List<int> key = Numerics.ToHexArray1(scalar);
-            AffinePoint output = AffinePoint.InfinityPoint;
-            for (int i = 0; i < key.Count; i++)
+            else
             {
-                if (!_dic_calculated.TryGetValue(key[i], out AffinePoint rP))
+                if (point.IsGPoint())
                 {
-                    rP = AffinePoint.Multiply(key[i], point);
-                    _dic_calculated.Add(key[i], rP);
+                    if (_cache_base.TryGetValue(scalar, out AffinePoint val))
+                    {
+                        return val;
+                    }
+                    else
+                    {
+                        if (scalar <= 16)
+                        {
+                            return Multiply(scalar, point);
+                        }
+                        Dictionary<BigInteger, AffinePoint> _dic_calculated = new Dictionary<BigInteger, AffinePoint>();
+                        List<int> key = Numerics.ToHexArray1(scalar);
+                        AffinePoint output = AffinePoint.InfinityPoint;
+                        for (int i = 0; i < key.Count; i++)
+                        {
+                            if (!_dic_calculated.TryGetValue(key[i], out AffinePoint rP))
+                            {
+                                rP = AffinePoint.Multiply(key[i], point);
+                                _dic_calculated.Add(key[i], rP);
+                            }
+                            output = 16 * output + rP;
+                        }
+                        _cache_base.Add(scalar, output);
+                        return output;
+                    }
                 }
-                output = 16 * output + rP;
+                else
+                {
+                    if (scalar <= 16)
+                    {
+                        return Multiply(scalar, point);
+                    }
+                    Dictionary<BigInteger, AffinePoint> _dic_calculated = new Dictionary<BigInteger, AffinePoint>();
+                    List<int> key = Numerics.ToHexArray1(scalar);
+                    AffinePoint output = AffinePoint.InfinityPoint;
+                    for (int i = 0; i < key.Count; i++)
+                    {
+                        if (!_dic_calculated.TryGetValue(key[i], out AffinePoint rP))
+                        {
+                            rP = AffinePoint.Multiply(key[i], point);
+                            _dic_calculated.Add(key[i], rP);
+                        }
+                        output = 16 * output + rP;
+                    }
+                    return output;
+                }
             }
-            return output;
         }
 
         public static bool operator ==(AffinePoint p1, AffinePoint p2)
@@ -366,6 +451,10 @@ namespace ECCBase16
         {
             return Base16Multiplicands(scalar, p2);
         }
+
+
+
+        private static Dictionary<BigInteger, AffinePoint> _cache_base = new Dictionary<BigInteger, AffinePoint>();
     }
 
     public class EiSiPoint

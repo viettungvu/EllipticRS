@@ -10,7 +10,7 @@
 
   <ItemGroup>
     <Reference Include="XUtil">
-      <HintPath>D:\DLL\XUtil.dll</HintPath>
+      <HintPath>..\dll\XUtil.dll</HintPath>
     </Reference>
   </ItemGroup>
 

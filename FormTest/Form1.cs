@@ -45,7 +45,7 @@ namespace FormTest
                 _is_running = true;
                 try
                 {
-                    //ReSysUtils.RunEiSi("D:\\Test\\OutputEisiFull");
+                    ReSysUtils.RunEiSi("D:\\Test\\OutputEisiFull");
                     ReSysUtils.RunCF();
                 }
                 catch (Exception ex)
@@ -286,7 +286,7 @@ namespace FormTest
 
         private void button12_Click(object sender, EventArgs e)
         {
-            int n = 5;
+            int n = 50;
             int m = 200;
             int max = 5;
             Random rd = new Random();
